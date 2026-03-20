@@ -247,6 +247,7 @@ export default function Pos() {
   const navigate = useNavigate();
   const [activeUser, setActiveUser] = useState(null); // Tracks logged in user
   const [lang, setLang] = useState('ID');
+  const [activeMenu, setActiveMenu] = useState('pos'); // Menampung halaman yang dikunjungi
   const [isOffline, setIsOffline] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [cart, setCart] = useState([]);
@@ -407,12 +408,12 @@ export default function Pos() {
       <aside className="pos-sidebar-left glass">
         <div className="nav-icon" onClick={() => navigate('/')} title="Home"><Home size={26}/><span className="nav-label">HOME</span></div>
         <div style={{ marginTop: '1rem' }}/>
-        <div className="nav-icon active"><LayoutGrid size={26}/><span className="nav-label">POS</span></div>
-        <div className="nav-icon"><Clock size={26}/><span className="nav-label">HISTORY</span></div>
-        <div className="nav-icon"><User size={26}/><span className="nav-label">MEMBERS</span></div>
-        <div className="nav-icon"><FileBarChart size={26}/><span className="nav-label">REPORT</span></div>
-        <div className="nav-icon"><Package size={26}/><span className="nav-label">STOCK</span></div>
-        <div className="nav-icon" onClick={() => alert('Drawer Opened!')}><Unlock size={26}/><span className="nav-label">DRAWER</span></div>
+        <div className={`nav-icon ${activeMenu === 'pos' ? 'active' : ''}`} onClick={() => setActiveMenu('pos')}><LayoutGrid size={26}/><span className="nav-label">POS</span></div>
+        <div className={`nav-icon ${activeMenu === 'history' ? 'active' : ''}`} onClick={() => setActiveMenu('history')}><Clock size={26}/><span className="nav-label">HISTORY</span></div>
+        <div className={`nav-icon ${activeMenu === 'members' ? 'active' : ''}`} onClick={() => setActiveMenu('members')}><User size={26}/><span className="nav-label">MEMBERS</span></div>
+        <div className={`nav-icon ${activeMenu === 'report' ? 'active' : ''}`} onClick={() => setActiveMenu('report')}><FileBarChart size={26}/><span className="nav-label">REPORT</span></div>
+        <div className={`nav-icon ${activeMenu === 'stock' ? 'active' : ''}`} onClick={() => setActiveMenu('stock')}><Package size={26}/><span className="nav-label">STOCK</span></div>
+        <div className={`nav-icon ${activeMenu === 'drawer' ? 'active' : ''}`} onClick={() => setActiveMenu('drawer')}><Unlock size={26}/><span className="nav-label">DRAWER</span></div>
         <div className="nav-icon" style={{ marginTop: 'auto' }}><Settings size={26}/><span className="nav-label">OPTIONS</span></div>
       </aside>
 
@@ -444,8 +445,10 @@ export default function Pos() {
 
         {/* Content */}
         <div className="pos-content">
-          {/* Products */}
-          <section className="product-section">
+          {activeMenu === 'pos' && (
+            <>
+              {/* Products */}
+              <section className="product-section">
             <div className="category-tabs">
               {categories.map(c => (
                 <button key={c.key}
@@ -564,6 +567,38 @@ export default function Pos() {
               </div>
             </div>
           </aside>
+            </>
+          )}
+
+          {activeMenu !== 'pos' && (
+            <div className="settings-panel glass" style={{ width: '100%', padding: '3rem', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start', overflowY: 'auto' }}>
+              <h2 style={{ fontSize: '2rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {activeMenu === 'history' && <><Clock size={36}/> Riwayat Transaksi</>}
+                {activeMenu === 'members' && <><User size={36}/> Database Pelanggan Kasbon</>}
+                {activeMenu === 'report' && <><FileBarChart size={36}/> Analisis Penjualan & Laporan</>}
+                {activeMenu === 'stock' && <><Package size={36}/> Manajemen Stok & Inventaris</>}
+                {activeMenu === 'drawer' && <><Unlock size={36}/> Rekap Laci Kasir (Drawer)</>}
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', lineHeight: '1.8', maxWidth: '800px' }}>
+                {activeMenu === 'history' && 'Daftar struk, rekapan nota dari pembayaran pelanggan (Terkoneksi otomatis dengan tabel transactions).'}
+                {activeMenu === 'members' && 'Tambahkan nomor WA pelanggan baru, dan atur riwayat hutang (kasbon) mereka.'}
+                {activeMenu === 'report' && 'Halaman grafik pendapatan, laba bersih harian, dan analisis produk terlaris dijamin Real-Time langsung dari Supabase.'}
+                {activeMenu === 'stock' && 'Atur jumlah produk, harga modal, harga grosir yang ada pada tabel products melalui laman form ini.'}
+                {activeMenu === 'drawer' && 'Mulai Shift kerja hari ini, dan setor rincian pembukuan laci kasir saat tutup toko.'}
+              </p>
+              
+              <div style={{ marginTop: '2rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', width: '100%', maxWidth: '800px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ color: '#0f172a', marginBottom: '1rem' }}>Tabel Supabase yang Dibutuhkan untuk Modul Ini:</h4>
+                <code style={{ display: 'block', background: '#eff6ff', padding: '1.2rem', borderRadius: '8px', color: '#1d4ed8', whiteSpace: 'pre-wrap', fontWeight: '600' }}>
+                  {activeMenu === 'history' && "Semua Data History sudah siap!\nKarena Vercel otomatis menggunakan tabel 'transactions' yang berjalan secara Background saat kita checkout pesanan.\n\nTinggal panggil pakai: `supabase.from('transactions').select('*')`"}
+                  {activeMenu === 'members' && "-- Ini Query Database Pelanggan:\nCREATE TABLE members (\n  id uuid default gen_random_uuid() primary key,\n  name text not null,\n  phone text unique,\n  debt_balance numeric default 0,\n  created_at timestamp default now()\n);"}
+                  {activeMenu === 'report' && "Tidak butuh tabel baru.\nCukup dibentuk menggunakan bahasa algoritma/SQL (Contoh: SUM) untuk menggabungkan tabel 'transactions' dan 'products' harian/bulanan."}
+                  {activeMenu === 'stock' && "Tidak perlu tabel khusus!\nKamu bisa langsung mengedit/menambah 'products' yang sudah kamu miliki menggunakan UI Form khusus POS nanti."}
+                  {activeMenu === 'drawer' && "-- Ini Query Shift Laci Kasir:\nCREATE TABLE shifts (\n  id uuid default gen_random_uuid() primary key,\n  cashier_id uuid references cashiers(id),\n  start_amount numeric not null,\n  end_amount numeric,\n  status text default 'open',\n  opened_at timestamp default now(),\n  closed_at timestamp\n);"}
+                </code>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

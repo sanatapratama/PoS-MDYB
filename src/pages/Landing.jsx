@@ -158,7 +158,7 @@ export default function Landing() {
             🌐 {lang}
           </button>
 
-          <button className="btn-primary" onClick={() => navigate('/admin2026')}>
+          <button className="btn-primary" onClick={() => navigate('/pos')}>
             {text.cta}
           </button>
         </div>
@@ -206,7 +206,7 @@ export default function Landing() {
 
         {/* CTA Buttons */}
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button className="btn-primary float-element" onClick={() => navigate('/admin2026')}
+          <button className="btn-primary float-element" onClick={() => navigate('/pos')}
             style={{ padding: '0.9rem 2.5rem', fontSize: '1.05rem' }}>
             {text.cta} →
           </button>
