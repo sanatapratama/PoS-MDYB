@@ -7,9 +7,9 @@ const LANGS = ['ID', 'EN', 'JV'];
 const CONTENT = {
   ID: {
     badge: 'v2.0 Beta Live',
-    title1: 'MDYB - ',
-    title2: 'SILENTERA.',
-    subtitle: '(Si Layanan Entheng Teknologi Rekap Akurat) — Kelola toko Anda lebih cepat, mudah, dan akurat.',
+    title1: 'Si ',
+    title2: 'Lentera.',
+    subtitle: 'Solusi Kasir Ringan, Setulus Hati, Setajam Akurasi Jawa.',
     cta: 'Masuk ke Kasir',
     demo: 'Lihat Demo',
     nav: {
@@ -34,9 +34,9 @@ const CONTENT = {
   },
   EN: {
     badge: 'v2.0 Beta Live',
-    title1: 'MDYB - ',
-    title2: 'SILENTERA.',
-    subtitle: '(Si Layanan Entheng Teknologi Rekap Akurat) — Manage your store faster, easier, and more accurately.',
+    title1: 'Si ',
+    title2: 'Lentera.',
+    subtitle: 'Solusi Kasir Ringan, Setulus Hati, Setajam Akurasi Jawa.',
     cta: 'Open Cashier',
     demo: 'View Demo',
     nav: {
@@ -61,9 +61,9 @@ const CONTENT = {
   },
   JV: {
     badge: 'v2.0 Beta Anyar',
-    title1: 'MDYB - ',
-    title2: 'SILENTERA.',
-    subtitle: '(Si Layanan Entheng Teknologi Rekap Akurat) — Atur toko sampeyan kanthi luwih cepet, gampang, lan akurat.',
+    title1: 'Si ',
+    title2: 'Lentera.',
+    subtitle: 'Solusi Kasir Ringan, Setulus Hati, Setajam Akurasi Jawa.',
     cta: 'Mlebu Kasir',
     demo: 'Delok Demo',
     nav: {
@@ -101,10 +101,12 @@ export default function Landing() {
   };
 
   return (
-    <div className="app-container visible" style={{ background: 'var(--bg-gradient)' }}>
-      <div className="motion-lines" />
-      <div className="glow-orb orb-1" />
-      <div className="glow-orb orb-2" />
+    <div className="app-container visible">
+      <div className="aurora-bg">
+        <div className="aurora-orb o1" />
+        <div className="aurora-orb o2" />
+        <div className="aurora-orb o3" />
+      </div>
 
       {/* ── NAVBAR ── */}
       <nav className="navbar glass">
@@ -121,12 +123,17 @@ export default function Landing() {
             <polyline points="2 17 12 22 22 17" />
             <polyline points="2 12 12 17 22 12" />
           </svg>
-          <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem' }}>
-            MDYB <span style={{
-              background: 'linear-gradient(45deg, var(--accent-blue), var(--accent-cyan))',
-              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-            }}>- SILENTERA</span>
-          </span>
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+            <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem' }}>
+              Si <span style={{
+                background: 'linear-gradient(45deg, var(--accent-cyan), var(--accent-pink))',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+              }}>Lentera</span>
+            </span>
+            <span style={{ fontSize: '0.65rem', fontWeight: 400, opacity: 0.6, letterSpacing: '0.05em' }}>
+              by MDYB Store
+            </span>
+          </div>
         </div>
 
         <div className="nav-links">
@@ -184,7 +191,7 @@ export default function Landing() {
           maxWidth: '750px',
         }}>
           <span style={{
-            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))',
+            background: 'linear-gradient(135deg, var(--accent-cyan), var(--accent-pink))',
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>{text.title1} </span>
           {text.title2}
@@ -192,8 +199,9 @@ export default function Landing() {
 
         {/* Subtitle */}
         <p style={{
-          fontSize: '1.15rem',
-          color: 'var(--text-secondary)',
+          fontSize: '1.25rem',
+          color: 'var(--text-primary)',
+          opacity: 0.9,
           maxWidth: '520px',
           lineHeight: 1.7,
         }}>{text.subtitle}</p>
@@ -224,55 +232,59 @@ export default function Landing() {
         </div>
 
         {/* Floating device art */}
-        <div style={{ position: 'relative', width: '100%', maxWidth: '700px', height: '220px', marginTop: '1rem' }}>
-          {/* Laptop mockup */}
-          <div className="glass float-element" style={{
-            position: 'absolute', left: '50%', top: '10%',
+        <div style={{ position: 'relative', width: '100%', maxWidth: '750px', height: '260px', marginTop: '2rem', perspective: '1000px' }}>
+          {/* Main App Mockup */}
+          <div className="glass float-antigravity" style={{
+            position: 'absolute', left: '50%', top: '5%',
             transform: 'translateX(-50%)',
-            width: '380px', height: '160px',
-            padding: '1rem',
-            display: 'flex', flexDirection: 'column', gap: '0.5rem',
+            width: '460px', height: '200px',
+            padding: '1.2rem',
+            display: 'flex', flexDirection: 'column', gap: '0.6rem',
             animationDelay: '0s',
+            border: '1px solid rgba(0, 240, 255, 0.2)',
           }}>
-            <div style={{ height: '16px', borderRadius: '6px', background: 'rgba(58,123,213,0.12)', width: '100%' }} />
-            <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
-              <div style={{ width: '22%', borderRadius: '6px', background: 'rgba(58,123,213,0.07)' }} />
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                <div style={{ display: 'flex', gap: '0.4rem', flex: 1 }}>
-                  <div style={{ flex: 1, borderRadius: '6px', background: 'rgba(255,255,255,0.8)' }} />
-                  <div style={{ flex: 1, borderRadius: '6px', background: 'rgba(255,255,255,0.8)' }} />
-                  <div style={{ flex: 1, borderRadius: '6px', background: 'rgba(255,255,255,0.8)' }} />
+            <div style={{ height: '20px', borderRadius: '8px', background: 'rgba(0, 240, 255, 0.15)', width: '100%' }} />
+            <div style={{ display: 'flex', gap: '0.8rem', flex: 1 }}>
+              <div style={{ width: '25%', borderRadius: '8px', background: 'rgba(0, 240, 255, 0.1)' }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flex: 1 }}>
+                  <div style={{ flex: 1, borderRadius: '8px', background: 'rgba(255, 255, 255, 0.1)' }} />
+                  <div style={{ flex: 1, borderRadius: '8px', background: 'rgba(255, 255, 255, 0.1)' }} />
+                  <div style={{ flex: 1, borderRadius: '8px', background: 'rgba(255, 255, 255, 0.1)' }} />
                 </div>
-                <div style={{ flex: 1.5, borderRadius: '6px', background: 'rgba(255,255,255,0.8)' }} />
+                <div style={{ flex: 1.2, borderRadius: '8px', background: 'linear-gradient(45deg, rgba(0,240,255,0.1), rgba(255,0,127,0.1))' }} />
               </div>
             </div>
           </div>
-          {/* Phone mockup */}
-          <div className="glass float-element" style={{
-            position: 'absolute', left: '5%', bottom: '0',
-            width: '90px', height: '170px',
-            padding: '0.75rem',
-            display: 'flex', flexDirection: 'column', gap: '0.4rem',
+          
+          {/* Phone Payment Mockup */}
+          <div className="glass float-antigravity" style={{
+            position: 'absolute', left: '10%', bottom: '0',
+            width: '110px', height: '200px',
+            padding: '0.8rem',
+            display: 'flex', flexDirection: 'column', gap: '0.5rem',
             animationDelay: '-2s',
+            border: '1px solid rgba(255, 0, 127, 0.3)',
           }}>
-            <div style={{ height: '14px', borderRadius: '5px', background: 'rgba(58,123,213,0.12)' }} />
-            {[1, 2, 3].map(i => (
-              <div key={i} style={{ flex: 1, borderRadius: '5px', background: 'rgba(255,255,255,0.8)' }} />
-            ))}
+            <div style={{ height: '30px', borderRadius: '6px', background: 'rgba(255,0,127,0.2)' }} />
+            <div style={{ flex: 1, borderRadius: '6px', background: 'rgba(255, 255, 255, 0.1)' }} />
+            <div style={{ flex: 2, borderRadius: '6px', background: 'rgba(0, 240, 255, 0.15)' }} />
           </div>
-          {/* Tablet mockup */}
-          <div className="glass float-element" style={{
-            position: 'absolute', right: '5%', bottom: '0',
-            width: '150px', height: '180px',
-            padding: '0.75rem',
+          
+          {/* Receipt Mockup */}
+          <div className="glass float-antigravity" style={{
+            position: 'absolute', right: '10%', bottom: '20px',
+            width: '130px', height: '180px',
+            padding: '0.8rem',
             display: 'flex', flexDirection: 'column', gap: '0.4rem',
             animationDelay: '-4s',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
           }}>
-            <div style={{ height: '14px', borderRadius: '5px', background: 'rgba(58,123,213,0.12)' }} />
-            <div style={{ flex: 1, borderRadius: '5px', background: 'rgba(255,255,255,0.8)' }} />
-            <div style={{ display: 'flex', gap: '0.4rem', flex: 1.2 }}>
-              <div style={{ flex: 1, borderRadius: '5px', background: 'rgba(255,255,255,0.8)' }} />
-              <div style={{ flex: 1, borderRadius: '5px', background: 'rgba(255,255,255,0.8)' }} />
+            <div style={{ height: '16px', borderRadius: '4px', background: 'rgba(255,255,255,0.2)' }} />
+            <div style={{ flex: 1, borderRadius: '4px', background: 'rgba(255, 255, 255, 0.05)' }} />
+            <div style={{ display: 'flex', gap: '0.4rem', flex: 1 }}>
+              <div style={{ flex: 1, borderRadius: '4px', background: 'rgba(0, 240, 255, 0.15)' }} />
+              <div style={{ flex: 1, borderRadius: '4px', background: 'rgba(255, 0, 127, 0.15)' }} />
             </div>
           </div>
         </div>
