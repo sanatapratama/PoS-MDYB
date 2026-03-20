@@ -176,8 +176,7 @@ export default function Landing() {
         gap: '1.5rem',
         position: 'relative',
       }}>
-        {/* Badge */}
-        <span className="hero-badge float-slow">{text.badge}</span>
+        {/* Badge moved to H1 */}
 
         {/* Title */}
         <h1 style={{
@@ -193,6 +192,9 @@ export default function Landing() {
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>{text.title1} </span>
           {text.title2}
+          <span className="hero-badge float-slow" style={{ fontSize: '1.2rem', verticalAlign: 'super', marginLeft: '15px', padding: '0.4rem 1rem' }}>
+            {text.badge}
+          </span>
         </h1>
 
         {/* Subtitle */}
@@ -207,11 +209,8 @@ export default function Landing() {
         {/* CTA Buttons */}
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
           <button className="btn-primary float-element" onClick={() => navigate('/pos')}
-            style={{ padding: '0.9rem 2.5rem', fontSize: '1.05rem' }}>
+            style={{ padding: '0.9rem 2.5rem', fontSize: '1.05rem', boxShadow: '0 15px 30px -10px rgba(37,99,235,0.4)', letterSpacing: '0.02em', fontWeight: 'bold' }}>
             {text.cta} →
-          </button>
-          <button className="btn-secondary" style={{ padding: '0.9rem 2.5rem', fontSize: '1.05rem' }}>
-            {text.demo}
           </button>
         </div>
 
