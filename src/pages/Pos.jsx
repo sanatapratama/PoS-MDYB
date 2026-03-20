@@ -6,7 +6,7 @@ import {
   ShoppingCart, Plus, Minus, CreditCard, ChevronRight, 
   Home, Trash2, Percent, FileText, Camera, PauseCircle,
   FileBarChart, Fingerprint, Globe, Unlock, QrCode,
-  CheckCircle, MessageCircle, BookOpen, Package
+  CheckCircle, MessageCircle, BookOpen, Package, Printer, Tag, StickyNote
 } from 'lucide-react';
 import './Pos.css';
 
@@ -267,6 +267,14 @@ export default function Pos() {
   const [transactions, setTransactions] = useState([]);
   const [drawerAmount, setDrawerAmount] = useState('');
 
+  // Cart extra states
+  const [discountInput, setDiscountInput] = useState('');
+  const [noteInput, setNoteInput] = useState('');
+  const [showDiscountBox, setShowDiscountBox] = useState(false);
+  const [showNoteBox, setShowNoteBox] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [showCustomerPicker, setShowCustomerPicker] = useState(false);
+
   // Supabase Data
   const [dbCategories, setDbCategories] = useState([]);
   const [dbCashiers, setDbCashiers] = useState([]);
@@ -403,6 +411,64 @@ export default function Pos() {
     }
   };
 
+  // ── print receipt ──
+  const printReceipt = (payMethod) => {
+    const now = new Date();
+    const lines = cart.map(item => {
+      const discPrice = item.price * (1 - (item.discount || 0));
+      const qtyStr = String(item.qty).padStart(2);
+      const priceStr = formatIDR(discPrice * item.qty);
+      const nameStr = item.name.slice(0, 22).padEnd(22);
+      return `${nameStr} ${qtyStr}x  ${priceStr}`;
+    }).join('\n');
+
+    const manualDisc = Number(discountInput) || 0;
+    const sub = cart.reduce((s, i) => s + i.price * (1 - (i.discount || 0)) * i.qty, 0) - manualDisc;
+    const taxAmt = Math.round(sub * 0.11);
+    const grandTotal = sub + taxAmt;
+
+    const printContent = `
+      <html><head><title>Nota Si Lentera</title><style>
+        @page { margin: 0; size: 80mm auto; }
+        * { box-sizing: border-box; }
+        body { font-family: 'Courier New', monospace; font-size: 11pt; padding: 5mm 4mm; color: #000; width: 72mm; }
+        .center { text-align: center; }
+        .right { text-align: right; }
+        .big { font-size: 16pt; font-weight: bold; letter-spacing: 1px; }
+        .line-dash { border: none; border-top: 1px dashed #000; margin: 4px 0; }
+        .line-solid { border: none; border-top: 2px solid #000; margin: 4px 0; }
+        .row { display: flex; justify-content: space-between; margin: 1px 0; }
+        .bold { font-weight: bold; }
+        .total-row { font-size: 13pt; font-weight: bold; margin: 4px 0; }
+        pre { margin: 0; font-family: inherit; font-size: inherit; white-space: pre-wrap; word-break: break-all; }
+      </style></head><body>
+        <div class="center big">Si Lentera</div>
+        <div class="center" style="font-size:9pt">by MDYB Store</div>
+        <hr class="line-dash"/>
+        <div class="center" style="font-size:8.5pt">${now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+        <div class="center" style="font-size:8.5pt">Pukul ${now.toLocaleTimeString('id-ID')}</div>
+        <div class="center" style="font-size:8.5pt">Kasir: <b>${activeUser?.name || '-'}</b></div>
+        ${selectedCustomer ? `<div class="center" style="font-size:8.5pt">Pelanggan: <b>${selectedCustomer.name}</b></div>` : ''}
+        <hr class="line-solid"/>
+        <pre>${lines}</pre>
+        <hr class="line-dash"/>
+        ${manualDisc > 0 ? `<div class="row"><span>Subtotal</span><span>${formatIDR(sub + manualDisc)}</span></div><div class="row"><span>Diskon</span><span>- ${formatIDR(manualDisc)}</span></div>` : ''}
+        <div class="row"><span>Subtotal</span><span>${formatIDR(sub)}</span></div>
+        <div class="row"><span>Pajak (11%)</span><span>${formatIDR(taxAmt)}</span></div>
+        <hr class="line-dash"/>
+        <div class="row total-row"><span>TOTAL</span><span>${formatIDR(grandTotal)}</span></div>
+        <div class="row"><span>Metode Bayar</span><span><b>${payMethod.toUpperCase()}</b></span></div>
+        <hr class="line-solid"/>
+        ${noteInput ? `<div style="font-size:9pt; margin: 3px 0">📝 ${noteInput}</div><hr class="line-dash"/>` : ''}
+        <div class="center" style="margin-top:6px; font-size:9pt">Terima kasih telah berbelanja!</div>
+        <div class="center" style="font-size:8pt; margin-top:2px">★ Si Lentera ★ Solusi Kasir Ringan ★</div>
+        <br/><br/>
+      </body></html>
+    `;
+    const w = window.open('', '_blank', 'width=420,height=700,left=100,top=100');
+    if (w) { w.document.write(printContent); w.document.close(); w.focus(); setTimeout(() => { w.print(); }, 400); }
+  };
+
   if (!activeUser) {
     return <LoginScreen cashiers={dbCashiers} onLogin={(user) => setActiveUser(user)} />;
   }
@@ -501,15 +567,30 @@ export default function Pos() {
               </div>
             </div>
 
-            {/* Customer */}
-            <div className="customer-card">
+            {/* Customer Selector */}
+            <div className="customer-card" onClick={() => setShowCustomerPicker(p => !p)} style={{ cursor: 'pointer' }}>
               <User size={28} color="var(--accent-blue)" opacity={0.7} />
               <div className="customer-info">
                 <h5>{text.customerSelect}</h5>
-                <p>+62812... / Nama Pelanggan</p>
+                <p>{selectedCustomer ? `${selectedCustomer.name} · ${selectedCustomer.phone || 'No WA'}` : '+62812... / Nama Pelanggan'}</p>
               </div>
               <ChevronRight size={20} opacity={0.3} />
             </div>
+            {showCustomerPicker && (
+              <div style={{ background: '#f8fafc', borderRadius: '10px', padding: '0.5rem', margin: '0 0 0.5rem', border: '1px solid #e2e8f0', maxHeight: '150px', overflowY: 'auto' }}>
+                <div style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.85rem' }}
+                  onClick={() => { setSelectedCustomer(null); setShowCustomerPicker(false); }}>— Tanpa Pelanggan</div>
+                {members.map(m => (
+                  <div key={m.id} style={{ padding: '0.5rem 0.75rem', cursor: 'pointer', borderRadius: '6px', fontWeight: 600, fontSize: '0.9rem' }}
+                    onClick={() => { setSelectedCustomer(m); setShowCustomerPicker(false); }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#eff6ff'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    {m.name} <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{m.phone ? `· ${m.phone}` : ''}</span>
+                  </div>
+                ))}
+                {members.length === 0 && <div style={{ padding: '0.5rem 0.75rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Belum ada pelanggan terdaftar.</div>}
+              </div>
+            )}
 
             {/* Items */}
             <div className="cart-items">
@@ -543,9 +624,28 @@ export default function Pos() {
 
             {/* Quick Tools */}
             <div className="cart-tools">
-              <button className="tool-btn"><Percent size={18} /> {text.discount}</button>
-              <button className="tool-btn"><FileText size={18} /> {text.note}</button>
+              <button className="tool-btn" onClick={() => { setShowDiscountBox(d => !d); setShowNoteBox(false); }}>
+                <Percent size={18} /> {text.discount}
+              </button>
+              <button className="tool-btn" onClick={() => { setShowNoteBox(n => !n); setShowDiscountBox(false); }}>
+                <StickyNote size={18} /> {text.note}
+              </button>
             </div>
+            {showDiscountBox && (
+              <div style={{ padding: '0 1rem 0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <Tag size={16} color="var(--accent-blue)" />
+                <input type="number" placeholder="Nominal diskon (Rp)" value={discountInput}
+                  onChange={e => setDiscountInput(e.target.value)}
+                  style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none' }} />
+                <button onClick={() => setShowDiscountBox(false)} style={{ background: 'var(--accent-blue)', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600 }}>OK</button>
+              </div>
+            )}
+            {showNoteBox && (
+              <div style={{ padding: '0 1rem 0.5rem' }}>
+                <textarea placeholder="Catatan pesanan..." value={noteInput} onChange={e => setNoteInput(e.target.value)}
+                  style={{ width: '100%', padding: '0.6rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', resize: 'vertical', outline: 'none', minHeight: '60px' }} />
+              </div>
+            )}
 
             {/* Summary */}
             <div className="cart-summary">
@@ -567,19 +667,28 @@ export default function Pos() {
               <div className="summary-row total"><span>{text.total}</span><span>{formatIDR(total)}</span></div>
 
               <div className="checkout-grid">
-                <button className="checkout-btn" onClick={() => saveToSupabase('cash')}>
+                <button className="checkout-btn" onClick={() => { saveToSupabase('cash'); printReceipt('Tunai'); }} disabled={cart.length === 0}>
                   <CreditCard size={18} /> {text.charge}
                 </button>
-                <button className="checkout-btn qris" onClick={() => saveToSupabase('qris')}>
+                <button className="checkout-btn qris" onClick={() => { saveToSupabase('qris'); printReceipt('QRIS'); }} disabled={cart.length === 0}>
                   <QrCode size={18} /> {text.qrisBtn}
                 </button>
-                <button className="checkout-btn split" onClick={() => setModal('split')}>
+                <button className="checkout-btn split" onClick={() => setModal('split')} disabled={cart.length === 0}>
                   <CreditCard size={18} /> {text.splitBtn}
                 </button>
-                <button className="checkout-btn kasbon" onClick={() => setModal('kasbon')}>
+                <button className="checkout-btn kasbon" onClick={() => setModal('kasbon')} disabled={cart.length === 0}>
                   <BookOpen size={18} /> {text.kasbonBtn}
                 </button>
               </div>
+              {/* Print Button */}
+              <button
+                onClick={() => printReceipt('Manual')}
+                disabled={cart.length === 0}
+                style={{ width: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', color: cart.length === 0 ? '#94a3b8' : 'var(--text-primary)', fontWeight: 600, cursor: cart.length === 0 ? 'not-allowed' : 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' }}
+                onMouseEnter={e => { if (cart.length > 0) e.currentTarget.style.background = '#eff6ff'; }}
+                onMouseLeave={e => e.currentTarget.style.background = '#f8fafc'}>
+                <Printer size={18} color={cart.length === 0 ? '#94a3b8' : 'var(--accent-blue)'} /> Cetak Nota Thermal
+              </button>
             </div>
           </aside>
             </>
