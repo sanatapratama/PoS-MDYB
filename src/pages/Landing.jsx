@@ -7,9 +7,9 @@ const LANGS = ['ID', 'EN', 'JV'];
 const CONTENT = {
   ID: {
     badge: 'v2.0 Beta Live',
-    title1: 'Sistem Kasir',
-    title2: 'Modern & Ringan.',
-    subtitle: 'Kelola toko Anda lebih cepat dan lebih mudah. Transaksi tunai, QRIS, dan split payment — semua dalam satu layar.',
+    title1: 'MDYB - ',
+    title2: 'SILENTERA.',
+    subtitle: '(Si Layanan Entheng Teknologi Rekap Akurat) — Kelola toko Anda lebih cepat, mudah, dan akurat.',
     cta: 'Masuk ke Kasir',
     demo: 'Lihat Demo',
     nav: {
@@ -34,9 +34,9 @@ const CONTENT = {
   },
   EN: {
     badge: 'v2.0 Beta Live',
-    title1: 'Modern & Lightweight',
-    title2: 'POS System.',
-    subtitle: 'Manage your store faster and smarter. Cash, QRIS, and split payments — all in one screen.',
+    title1: 'MDYB - ',
+    title2: 'SILENTERA.',
+    subtitle: '(Si Layanan Entheng Teknologi Rekap Akurat) — Manage your store faster, easier, and more accurately.',
     cta: 'Open Cashier',
     demo: 'View Demo',
     nav: {
@@ -61,9 +61,9 @@ const CONTENT = {
   },
   JV: {
     badge: 'v2.0 Beta Anyar',
-    title1: 'Sistem Kasir',
-    title2: 'Entheng lan Canggih.',
-    subtitle: 'Atur toko sampeyan kanthi luwih cepet lan gampang. Bayar tunai, QRIS, lan gabungan — kabeh ana ing siji layar.',
+    title1: 'MDYB - ',
+    title2: 'SILENTERA.',
+    subtitle: '(Si Layanan Entheng Teknologi Rekap Akurat) — Atur toko sampeyan kanthi luwih cepet, gampang, lan akurat.',
     cta: 'Mlebu Kasir',
     demo: 'Delok Demo',
     nav: {
@@ -125,7 +125,7 @@ export default function Landing() {
             MDYB <span style={{
               background: 'linear-gradient(45deg, var(--accent-blue), var(--accent-cyan))',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-            }}>Store</span>
+            }}>- SILENTERA</span>
           </span>
         </div>
 
