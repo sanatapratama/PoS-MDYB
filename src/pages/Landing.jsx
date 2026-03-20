@@ -9,7 +9,7 @@ const CONTENT = {
     badge: 'v2.0 Beta Live',
     title1: 'Si ',
     title2: 'Lentera.',
-    subtitle: 'Solusi Kasir Ringan, Setulus Hati, Setajam Akurasi Jawa.',
+    subtitle: 'Solusi Kasir Ringan, Setulus Hati, Setajam Akurasi.',
     cta: 'Masuk ke Kasir',
     demo: 'Lihat Demo',
     nav: {
@@ -36,7 +36,7 @@ const CONTENT = {
     badge: 'v2.0 Beta Live',
     title1: 'Si ',
     title2: 'Lentera.',
-    subtitle: 'Solusi Kasir Ringan, Setulus Hati, Setajam Akurasi Jawa.',
+    subtitle: 'Solusi Kasir Ringan, Setulus Hati, Setajam Akurasi.',
     cta: 'Open Cashier',
     demo: 'View Demo',
     nav: {
@@ -63,7 +63,7 @@ const CONTENT = {
     badge: 'v2.0 Beta Anyar',
     title1: 'Si ',
     title2: 'Lentera.',
-    subtitle: 'Solusi Kasir Ringan, Setulus Hati, Setajam Akurasi Jawa.',
+    subtitle: 'Solusi Kasir Ringan, Setulus Hati, Setajam Akurasi.',
     cta: 'Mlebu Kasir',
     demo: 'Delok Demo',
     nav: {
