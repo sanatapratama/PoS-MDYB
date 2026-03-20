@@ -122,11 +122,14 @@ export default function Landing() {
             <polyline points="2 12 12 17 22 12" />
           </svg>
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-            <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem' }}>
-              Si <span style={{
+            <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <span>Si <span style={{
                 background: 'linear-gradient(45deg, var(--accent-blue), var(--accent-cyan))',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-              }}>Lentera</span>
+              }}>Lentera</span></span>
+              <span style={{ fontSize: '0.55rem', padding: '0.2rem 0.5rem', background: 'rgba(37,99,235,0.1)', color: 'var(--accent-blue)', borderRadius: '99px', border: '1px solid rgba(37,99,235,0.2)' }}>
+                {text.badge}
+              </span>
             </span>
             <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
               by MDYB Store
@@ -192,9 +195,6 @@ export default function Landing() {
             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
           }}>{text.title1} </span>
           {text.title2}
-          <span className="hero-badge float-slow" style={{ fontSize: '1.2rem', verticalAlign: 'super', marginLeft: '15px', padding: '0.4rem 1rem' }}>
-            {text.badge}
-          </span>
         </h1>
 
         {/* Subtitle */}
