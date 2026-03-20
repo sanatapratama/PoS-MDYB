@@ -776,31 +776,49 @@ export default function Pos() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Nama Pelanggan *</label>
-                        <input style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
-                          placeholder="Budi Santoso" value={memberForm.name}
+                        <input
+                          style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a', cursor: 'text', zIndex: 10, position: 'relative' }}
+                          placeholder="Budi Santoso"
+                          value={memberForm.name}
+                          onFocus={e => e.target.style.borderColor = 'var(--accent-blue)'}
+                          onBlur={e => e.target.style.borderColor = '#bfdbfe'}
                           onChange={e => setMemberForm(f => ({ ...f, name: e.target.value }))} />
                       </div>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>No. WhatsApp</label>
-                        <input style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
-                          placeholder="08xxxxxxxxxx" value={memberForm.phone}
+                        <input
+                          style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a', cursor: 'text', zIndex: 10, position: 'relative' }}
+                          placeholder="08xxxxxxxxxx"
+                          value={memberForm.phone}
+                          onFocus={e => e.target.style.borderColor = 'var(--accent-blue)'}
+                          onBlur={e => e.target.style.borderColor = '#bfdbfe'}
                           onChange={e => setMemberForm(f => ({ ...f, phone: e.target.value }))} />
                       </div>
                       <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Hutang Awal (opsional)</label>
-                        <input type="number" style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
-                          placeholder="0" value={memberForm.debt_balance}
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Hutang Awal (Rp)</label>
+                        <input
+                          type="number"
+                          style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a', cursor: 'text', zIndex: 10, position: 'relative' }}
+                          placeholder="0"
+                          value={memberForm.debt_balance}
+                          onFocus={e => e.target.style.borderColor = 'var(--accent-blue)'}
+                          onBlur={e => e.target.style.borderColor = '#bfdbfe'}
                           onChange={e => setMemberForm(f => ({ ...f, debt_balance: e.target.value }))} />
                       </div>
                     </div>
                     <button
-                      style={{ background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))', color: '#fff', border: 'none', borderRadius: '99px', padding: '0.75rem 2.5rem', fontWeight: 700, cursor: memberSaving ? 'not-allowed' : 'pointer', opacity: memberSaving ? 0.7 : 1 }}
+                      style={{ background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))', color: '#fff', border: 'none', borderRadius: '99px', padding: '0.75rem 2.5rem', fontWeight: 700, cursor: memberSaving ? 'not-allowed' : 'pointer', opacity: memberSaving ? 0.7 : 1, fontSize: '0.95rem' }}
                       onClick={async () => {
-                        if (!memberForm.name) return alert('Nama pelanggan wajib diisi');
+                        if (!memberForm.name.trim()) return alert('Nama pelanggan wajib diisi');
                         setMemberSaving(true);
-                        const { error } = await supabase.from('members').insert([{ name: memberForm.name, phone: memberForm.phone || null, debt_balance: Number(memberForm.debt_balance) || 0 }]);
+                        const { error } = await supabase.from('members').insert([{ name: memberForm.name.trim(), phone: memberForm.phone.trim() || null, debt_balance: Number(memberForm.debt_balance) || 0 }]);
                         if (error) alert('Gagal simpan: ' + error.message);
-                        else { setMemberForm({ name: '', phone: '', debt_balance: '' }); const { data } = await supabase.from('members').select('*').order('created_at', { ascending: false }); if (data) setMembers(data); }
+                        else {
+                          setMemberForm({ name: '', phone: '', debt_balance: '' });
+                          const { data } = await supabase.from('members').select('*').order('created_at', { ascending: false });
+                          if (data) setMembers(data);
+                          alert('✅ Pelanggan berhasil ditambahkan!');
+                        }
                         setMemberSaving(false);
                       }}>
                       {memberSaving ? 'Menyimpan...' : '💾 Simpan Pelanggan'}
@@ -809,21 +827,36 @@ export default function Pos() {
 
                   <div className="glass" style={{ padding: '1.5rem' }}>
                     <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>📋 Daftar Pelanggan ({members.length})</h4>
-                    {members.length === 0 ? <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>Belum ada pelanggan terdaftar.</p> :
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                        <thead><tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                          <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Nama</th>
-                          <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>No. WA</th>
-                          <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Hutang</th>
-                        </tr></thead>
-                        <tbody>{members.map(m => (
-                          <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                            <td style={{ padding: '0.7rem 0.6rem', fontWeight: 600 }}>{m.name}</td>
-                            <td style={{ padding: '0.7rem 0.6rem', color: 'var(--text-secondary)' }}>{m.phone || '-'}</td>
-                            <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', color: m.debt_balance > 0 ? '#e74c3c' : '#27ae60', fontWeight: 700 }}>{formatIDR(m.debt_balance || 0)}</td>
-                          </tr>
-                        ))}</tbody>
-                      </table>
+                    {members.length === 0
+                      ? <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>Belum ada pelanggan terdaftar.</p>
+                      : <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                          <thead><tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                            <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Nama</th>
+                            <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>No. WA</th>
+                            <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Hutang</th>
+                            <th style={{ textAlign: 'center', padding: '0.6rem', color: 'var(--text-secondary)' }}>Hapus</th>
+                          </tr></thead>
+                          <tbody>{members.map(m => (
+                            <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '0.7rem 0.6rem', fontWeight: 600 }}>{m.name}</td>
+                              <td style={{ padding: '0.7rem 0.6rem', color: 'var(--text-secondary)' }}>{m.phone || '-'}</td>
+                              <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', color: m.debt_balance > 0 ? '#e74c3c' : '#27ae60', fontWeight: 700 }}>{formatIDR(m.debt_balance || 0)}</td>
+                              <td style={{ textAlign: 'center', padding: '0.4rem' }}>
+                                <button
+                                  onClick={async () => {
+                                    if (!window.confirm(`Hapus pelanggan "${m.name}"?`)) return;
+                                    const { error } = await supabase.from('members').delete().eq('id', m.id);
+                                    if (error) alert('Gagal hapus: ' + error.message);
+                                    else setMembers(prev => prev.filter(x => x.id !== m.id));
+                                  }}
+                                  style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '0.4rem 0.65rem', cursor: 'pointer', color: '#dc2626', fontWeight: 700, fontSize: '0.85rem' }}
+                                  title="Hapus Pelanggan">
+                                  🗑
+                                </button>
+                              </td>
+                            </tr>
+                          ))}</tbody>
+                        </table>
                     }
                   </div>
                 </div>
