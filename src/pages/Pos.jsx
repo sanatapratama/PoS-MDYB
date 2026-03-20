@@ -414,58 +414,126 @@ export default function Pos() {
   // ── print receipt ──
   const printReceipt = (payMethod) => {
     const now = new Date();
-    const lines = cart.map(item => {
-      const discPrice = item.price * (1 - (item.discount || 0));
-      const qtyStr = String(item.qty).padStart(2);
-      const priceStr = formatIDR(discPrice * item.qty);
-      const nameStr = item.name.slice(0, 22).padEnd(22);
-      return `${nameStr} ${qtyStr}x  ${priceStr}`;
-    }).join('\n');
-
+    const txId = 'SL' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getTime()).slice(-5);
     const manualDisc = Number(discountInput) || 0;
-    const sub = cart.reduce((s, i) => s + i.price * (1 - (i.discount || 0)) * i.qty, 0) - manualDisc;
-    const taxAmt = Math.round(sub * 0.11);
-    const grandTotal = sub + taxAmt;
+    const rawSub = cart.reduce((s, i) => s + i.price * (1 - (i.discount || 0)) * i.qty, 0);
+    const taxAmt = Math.round(rawSub * 0.11);
+    const grandTotal = rawSub - manualDisc + taxAmt;
 
-    const printContent = `
-      <html><head><title>Nota Si Lentera</title><style>
-        @page { margin: 0; size: 80mm auto; }
-        * { box-sizing: border-box; }
-        body { font-family: 'Courier New', monospace; font-size: 11pt; padding: 5mm 4mm; color: #000; width: 72mm; }
-        .center { text-align: center; }
-        .right { text-align: right; }
-        .big { font-size: 16pt; font-weight: bold; letter-spacing: 1px; }
-        .line-dash { border: none; border-top: 1px dashed #000; margin: 4px 0; }
-        .line-solid { border: none; border-top: 2px solid #000; margin: 4px 0; }
-        .row { display: flex; justify-content: space-between; margin: 1px 0; }
-        .bold { font-weight: bold; }
-        .total-row { font-size: 13pt; font-weight: bold; margin: 4px 0; }
-        pre { margin: 0; font-family: inherit; font-size: inherit; white-space: pre-wrap; word-break: break-all; }
-      </style></head><body>
-        <div class="center big">Si Lentera</div>
-        <div class="center" style="font-size:9pt">by MDYB Store</div>
-        <hr class="line-dash"/>
-        <div class="center" style="font-size:8.5pt">${now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
-        <div class="center" style="font-size:8.5pt">Pukul ${now.toLocaleTimeString('id-ID')}</div>
-        <div class="center" style="font-size:8.5pt">Kasir: <b>${activeUser?.name || '-'}</b></div>
-        ${selectedCustomer ? `<div class="center" style="font-size:8.5pt">Pelanggan: <b>${selectedCustomer.name}</b></div>` : ''}
-        <hr class="line-solid"/>
-        <pre>${lines}</pre>
-        <hr class="line-dash"/>
-        ${manualDisc > 0 ? `<div class="row"><span>Subtotal</span><span>${formatIDR(sub + manualDisc)}</span></div><div class="row"><span>Diskon</span><span>- ${formatIDR(manualDisc)}</span></div>` : ''}
-        <div class="row"><span>Subtotal</span><span>${formatIDR(sub)}</span></div>
-        <div class="row"><span>Pajak (11%)</span><span>${formatIDR(taxAmt)}</span></div>
-        <hr class="line-dash"/>
-        <div class="row total-row"><span>TOTAL</span><span>${formatIDR(grandTotal)}</span></div>
-        <div class="row"><span>Metode Bayar</span><span><b>${payMethod.toUpperCase()}</b></span></div>
-        <hr class="line-solid"/>
-        ${noteInput ? `<div style="font-size:9pt; margin: 3px 0">📝 ${noteInput}</div><hr class="line-dash"/>` : ''}
-        <div class="center" style="margin-top:6px; font-size:9pt">Terima kasih telah berbelanja!</div>
-        <div class="center" style="font-size:8pt; margin-top:2px">★ Si Lentera ★ Solusi Kasir Ringan ★</div>
-        <br/><br/>
-      </body></html>
-    `;
-    const w = window.open('', '_blank', 'width=420,height=700,left=100,top=100');
+    const itemRows = cart.map(item => {
+      const discPrice = item.price * (1 - (item.discount || 0));
+      const lineTotal = discPrice * item.qty;
+      return `
+        <div class="item-row">
+          <div>
+            <span class="item-name">${item.name} x${item.qty}</span>
+            ${item.discount > 0 ? `<br/><span class="item-note">Grosir -${(item.discount*100).toFixed(0)}%</span>` : ''}
+            ${noteInput && item === cart[cart.length-1] ? `<br/><span class="item-note">Catatan: ${noteInput}</span>` : ''}
+          </div>
+          <span class="item-price">${formatIDR(lineTotal)}</span>
+        </div>`;
+    }).join('');
+
+    const printContent = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Nota Si Lentera</title>
+<style>
+  @page { margin: 0; size: 80mm auto; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10pt; color: #111; width: 80mm; background: #fff; padding: 10px 8px 20px; }
+
+  /* Header */
+  .logo-wrap { text-align: center; margin-bottom: 10px; }
+  .logo-circle { width: 70px; height: 70px; border-radius: 50%; border: 2px solid #e5e7eb; background: #f9fafb; display: inline-flex; align-items: center; justify-content: center; font-size: 28px; }
+  .store-name { text-align: center; font-size: 15pt; font-weight: 800; margin: 4px 0 2px; letter-spacing: 0.5px; }
+  .store-sub { text-align: center; font-size: 9pt; color: #6b7280; }
+  .order-type { text-align: center; font-size: 11pt; font-weight: 700; margin: 10px 0 8px; }
+
+  /* Divider */
+  .dash { border: none; border-top: 1.5px dashed #d1d5db; margin: 8px 0; }
+  .solid { border: none; border-top: 1.5px solid #374151; margin: 8px 0; }
+
+  /* Info grid */
+  .info-grid { display: flex; justify-content: space-between; margin: 4px 0; }
+  .info-label { font-size: 8.5pt; color: #6b7280; margin-bottom: 1px; }
+  .info-value { font-size: 10pt; font-weight: 700; }
+  .info-right { text-align: right; }
+
+  /* Items */
+  .item-row { display: flex; justify-content: space-between; align-items: flex-start; margin: 6px 0; gap: 4px; }
+  .item-name { font-size: 10pt; font-weight: 500; }
+  .item-note { font-size: 8pt; color: #6b7280; }
+  .item-price { font-size: 10pt; white-space: nowrap; }
+
+  /* Payment */
+  .section-title { font-size: 10pt; font-weight: 700; margin: 8px 0 4px; }
+  .pay-row { display: flex; justify-content: space-between; margin: 3px 0; font-size: 10pt; }
+  .pay-row.total { font-size: 12pt; font-weight: 800; margin-top: 6px; }
+  .pay-row.discount { color: #dc2626; }
+
+  /* Footer */
+  .paid-box { text-align: center; margin: 12px 0 6px; }
+  .paid-badge { font-size: 13pt; font-weight: 800; letter-spacing: 3px; }
+  .paid-time { font-size: 9pt; color: #374151; margin-top: 2px; }
+  .thank-you { text-align: center; font-size: 9.5pt; color: #374151; margin-top: 8px; }
+  .footer-brand { text-align: center; font-size: 8pt; color: #9ca3af; margin-top: 4px; }
+</style>
+</head><body>
+
+  <div class="logo-wrap"><div class="logo-circle">🏮</div></div>
+  <div class="store-name">Si Lentera</div>
+  <div class="store-sub">by MDYB Store</div>
+  <div class="order-type">Kasir / ${payMethod.toUpperCase()}</div>
+
+  <div class="dash"></div>
+  <div class="info-grid">
+    <div>
+      <div class="info-label">Tanggal</div>
+      <div class="info-value">${now.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })}</div>
+    </div>
+    <div class="info-right">
+      <div class="info-label">Kasir</div>
+      <div class="info-value">${activeUser?.name || '-'}</div>
+    </div>
+  </div>
+  <div class="info-grid">
+    <div>
+      <div class="info-label">Trx ID</div>
+      <div class="info-value">${txId}</div>
+    </div>
+    <div class="info-right">
+      <div class="info-label">Pelanggan</div>
+      <div class="info-value">${selectedCustomer ? selectedCustomer.name : '-'}</div>
+    </div>
+  </div>
+
+  <div class="dash"></div>
+  ${itemRows}
+
+  <div class="dash"></div>
+  <div class="section-title">Payment Details</div>
+  <div class="pay-row"><span>Subtotal</span><span>${formatIDR(rawSub)}</span></div>
+  ${manualDisc > 0 ? `<div class="pay-row discount"><span>Discount</span><span>-${formatIDR(manualDisc)}</span></div>` : ''}
+  <div class="pay-row"><span>Pajak (11%)</span><span>${formatIDR(taxAmt)}</span></div>
+  <div class="solid"></div>
+  <div class="pay-row total"><span>Total</span><span>${formatIDR(grandTotal)}</span></div>
+
+  <div class="dash"></div>
+  <div class="section-title">Payment Method</div>
+  <div class="pay-row"><span>${payMethod}</span><span>${formatIDR(grandTotal)}</span></div>
+  <div class="pay-row"><span>Kembalian</span><span>${formatIDR(0)}</span></div>
+
+  <div class="dash"></div>
+  <div class="paid-box">
+    <div class="paid-badge">PAID</div>
+    <div class="paid-time">${now.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })} - ${now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })}</div>
+  </div>
+  <div class="dash"></div>
+  <div class="thank-you">Thank you for your order!</div>
+  <div class="footer-brand">★ Si Lentera · Solusi Kasir Ringan ★</div>
+  <br/><br/>
+</body></html>`;
+
+    const w = window.open('', '_blank', 'width=450,height=750,left=100,top=60');
     if (w) { w.document.write(printContent); w.document.close(); w.focus(); setTimeout(() => { w.print(); }, 400); }
   };
 
