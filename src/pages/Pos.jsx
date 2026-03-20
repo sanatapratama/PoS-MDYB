@@ -255,8 +255,17 @@ export default function Pos() {
   const [donation, setDonation] = useState(0);
 
   // Modals
-  const [modal, setModal] = useState(null); // 'qris' | 'split' | 'kasbon' | 'success'
+  const [modal, setModal] = useState(null);
   const [lastTotal, setLastTotal] = useState(0);
+
+  // Modul state
+  const [members, setMembers] = useState([]);
+  const [memberForm, setMemberForm] = useState({ name: '', phone: '', debt_balance: '' });
+  const [memberSaving, setMemberSaving] = useState(false);
+  const [stockForm, setStockForm] = useState({ name: '', category: '', price: '', stock: '' });
+  const [stockSaving, setStockSaving] = useState(false);
+  const [transactions, setTransactions] = useState([]);
+  const [drawerAmount, setDrawerAmount] = useState('');
 
   // Supabase Data
   const [dbCategories, setDbCategories] = useState([]);
@@ -281,6 +290,12 @@ export default function Pos() {
         } else {
           setDbCashiers([{ id: 'error', name: `⚠️ Tabel Kasir Masih Kosong` }]);
         }
+
+        const { data: memberData } = await supabase.from('members').select('*').order('created_at', { ascending: false });
+        if (memberData) setMembers(memberData);
+
+        const { data: txData } = await supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(50);
+        if (txData) setTransactions(txData);
       } catch (e) {
         setDbCashiers([{ id: 'error', name: `⚠️ Fatal: ${e.message}` }]);
       }
@@ -571,32 +586,219 @@ export default function Pos() {
           )}
 
           {activeMenu !== 'pos' && (
-            <div className="settings-panel glass" style={{ width: '100%', padding: '3rem', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-start', overflowY: 'auto' }}>
-              <h2 style={{ fontSize: '2rem', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                {activeMenu === 'history' && <><Clock size={36}/> Riwayat Transaksi</>}
-                {activeMenu === 'members' && <><User size={36}/> Database Pelanggan Kasbon</>}
-                {activeMenu === 'report' && <><FileBarChart size={36}/> Analisis Penjualan & Laporan</>}
-                {activeMenu === 'stock' && <><Package size={36}/> Manajemen Stok & Inventaris</>}
-                {activeMenu === 'drawer' && <><Unlock size={36}/> Rekap Laci Kasir (Drawer)</>}
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '1.2rem', lineHeight: '1.8', maxWidth: '800px' }}>
-                {activeMenu === 'history' && 'Daftar struk, rekapan nota dari pembayaran pelanggan (Terkoneksi otomatis dengan tabel transactions).'}
-                {activeMenu === 'members' && 'Tambahkan nomor WA pelanggan baru, dan atur riwayat hutang (kasbon) mereka.'}
-                {activeMenu === 'report' && 'Halaman grafik pendapatan, laba bersih harian, dan analisis produk terlaris dijamin Real-Time langsung dari Supabase.'}
-                {activeMenu === 'stock' && 'Atur jumlah produk, harga modal, harga grosir yang ada pada tabel products melalui laman form ini.'}
-                {activeMenu === 'drawer' && 'Mulai Shift kerja hari ini, dan setor rincian pembukuan laci kasir saat tutup toko.'}
-              </p>
-              
-              <div style={{ marginTop: '2rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '12px', width: '100%', maxWidth: '800px', border: '1px solid #e2e8f0' }}>
-                <h4 style={{ color: '#0f172a', marginBottom: '1rem' }}>Tabel Supabase yang Dibutuhkan untuk Modul Ini:</h4>
-                <code style={{ display: 'block', background: '#eff6ff', padding: '1.2rem', borderRadius: '8px', color: '#1d4ed8', whiteSpace: 'pre-wrap', fontWeight: '600' }}>
-                  {activeMenu === 'history' && "Semua Data History sudah siap!\nKarena Vercel otomatis menggunakan tabel 'transactions' yang berjalan secara Background saat kita checkout pesanan.\n\nTinggal panggil pakai: `supabase.from('transactions').select('*')`"}
-                  {activeMenu === 'members' && "-- Ini Query Database Pelanggan:\nCREATE TABLE members (\n  id uuid default gen_random_uuid() primary key,\n  name text not null,\n  phone text unique,\n  debt_balance numeric default 0,\n  created_at timestamp default now()\n);"}
-                  {activeMenu === 'report' && "Tidak butuh tabel baru.\nCukup dibentuk menggunakan bahasa algoritma/SQL (Contoh: SUM) untuk menggabungkan tabel 'transactions' dan 'products' harian/bulanan."}
-                  {activeMenu === 'stock' && "Tidak perlu tabel khusus!\nKamu bisa langsung mengedit/menambah 'products' yang sudah kamu miliki menggunakan UI Form khusus POS nanti."}
-                  {activeMenu === 'drawer' && "-- Ini Query Shift Laci Kasir:\nCREATE TABLE shifts (\n  id uuid default gen_random_uuid() primary key,\n  cashier_id uuid references cashiers(id),\n  start_amount numeric not null,\n  end_amount numeric,\n  status text default 'open',\n  opened_at timestamp default now(),\n  closed_at timestamp\n);"}
-                </code>
-              </div>
+            <div style={{ flex: 1, padding: '2rem', overflowY: 'auto' }}>
+
+              {/* ── MEMBERS Panel ── */}
+              {activeMenu === 'members' && (
+                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                  <h2 style={{ color: 'var(--accent-blue)', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}><User size={28}/> Database Pelanggan & Kasbon</h2>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Tambah pelanggan baru dan pantau saldo hutang (kasbon) mereka.</p>
+
+                  <div className="glass" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>➕ Tambah Pelanggan Baru</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Nama Pelanggan *</label>
+                        <input style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
+                          placeholder="Budi Santoso" value={memberForm.name}
+                          onChange={e => setMemberForm(f => ({ ...f, name: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>No. WhatsApp</label>
+                        <input style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
+                          placeholder="08xxxxxxxxxx" value={memberForm.phone}
+                          onChange={e => setMemberForm(f => ({ ...f, phone: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Hutang Awal (opsional)</label>
+                        <input type="number" style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
+                          placeholder="0" value={memberForm.debt_balance}
+                          onChange={e => setMemberForm(f => ({ ...f, debt_balance: e.target.value }))} />
+                      </div>
+                    </div>
+                    <button
+                      style={{ background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))', color: '#fff', border: 'none', borderRadius: '99px', padding: '0.75rem 2.5rem', fontWeight: 700, cursor: memberSaving ? 'not-allowed' : 'pointer', opacity: memberSaving ? 0.7 : 1 }}
+                      onClick={async () => {
+                        if (!memberForm.name) return alert('Nama pelanggan wajib diisi');
+                        setMemberSaving(true);
+                        const { error } = await supabase.from('members').insert([{ name: memberForm.name, phone: memberForm.phone || null, debt_balance: Number(memberForm.debt_balance) || 0 }]);
+                        if (error) alert('Gagal simpan: ' + error.message);
+                        else { setMemberForm({ name: '', phone: '', debt_balance: '' }); const { data } = await supabase.from('members').select('*').order('created_at', { ascending: false }); if (data) setMembers(data); }
+                        setMemberSaving(false);
+                      }}>
+                      {memberSaving ? 'Menyimpan...' : '💾 Simpan Pelanggan'}
+                    </button>
+                  </div>
+
+                  <div className="glass" style={{ padding: '1.5rem' }}>
+                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>📋 Daftar Pelanggan ({members.length})</h4>
+                    {members.length === 0 ? <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>Belum ada pelanggan terdaftar.</p> :
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                        <thead><tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                          <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Nama</th>
+                          <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>No. WA</th>
+                          <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Hutang</th>
+                        </tr></thead>
+                        <tbody>{members.map(m => (
+                          <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '0.7rem 0.6rem', fontWeight: 600 }}>{m.name}</td>
+                            <td style={{ padding: '0.7rem 0.6rem', color: 'var(--text-secondary)' }}>{m.phone || '-'}</td>
+                            <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', color: m.debt_balance > 0 ? '#e74c3c' : '#27ae60', fontWeight: 700 }}>{formatIDR(m.debt_balance || 0)}</td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    }
+                  </div>
+                </div>
+              )}
+
+              {/* ── STOCK Panel ── */}
+              {activeMenu === 'stock' && (
+                <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+                  <h2 style={{ color: 'var(--accent-blue)', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}><Package size={28}/> Manajemen Stok & Produk</h2>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Tambah produk baru atau update stok yang sudah ada di database.</p>
+
+                  <div className="glass" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>➕ Tambah Produk Baru</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Nama Produk *</label>
+                        <input style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
+                          placeholder="Es Teh Manis" value={stockForm.name}
+                          onChange={e => setStockForm(f => ({ ...f, name: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Kategori *</label>
+                        <input style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
+                          placeholder="Drinks" value={stockForm.category}
+                          onChange={e => setStockForm(f => ({ ...f, category: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Harga Jual (Rp) *</label>
+                        <input type="number" style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
+                          placeholder="5000" value={stockForm.price}
+                          onChange={e => setStockForm(f => ({ ...f, price: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Jumlah Stok *</label>
+                        <input type="number" style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
+                          placeholder="100" value={stockForm.stock}
+                          onChange={e => setStockForm(f => ({ ...f, stock: e.target.value }))} />
+                      </div>
+                    </div>
+                    <button
+                      style={{ background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))', color: '#fff', border: 'none', borderRadius: '99px', padding: '0.75rem 2.5rem', fontWeight: 700, cursor: stockSaving ? 'not-allowed' : 'pointer', opacity: stockSaving ? 0.7 : 1 }}
+                      onClick={async () => {
+                        if (!stockForm.name || !stockForm.price || !stockForm.stock) return alert('Nama, harga, dan stok wajib diisi');
+                        setStockSaving(true);
+                        const { error } = await supabase.from('products').insert([{ name: stockForm.name, category: stockForm.category || 'Lainnya', price: Number(stockForm.price), stock: Number(stockForm.stock) }]);
+                        if (error) alert('Gagal simpan: ' + error.message);
+                        else { setStockForm({ name: '', category: '', price: '', stock: '' }); const { data } = await supabase.from('products').select('*'); if (data && data.length > 0) setDbProducts(data); alert('✅ Produk berhasil ditambahkan!'); }
+                        setStockSaving(false);
+                      }}>
+                      {stockSaving ? 'Menyimpan...' : '📦 Simpan Produk'}
+                    </button>
+                  </div>
+
+                  <div className="glass" style={{ padding: '1.5rem' }}>
+                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>📋 Daftar Produk ({dbProducts.length})</h4>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                      <thead><tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                        <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Nama Produk</th>
+                        <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Kategori</th>
+                        <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Harga</th>
+                        <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Stok</th>
+                      </tr></thead>
+                      <tbody>{dbProducts.map(p => (
+                        <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '0.7rem 0.6rem', fontWeight: 600 }}>{p.name}</td>
+                          <td style={{ padding: '0.7rem 0.6rem' }}><span style={{ background: 'rgba(37,99,235,0.08)', color: 'var(--accent-blue)', borderRadius: '99px', padding: '0.2rem 0.7rem', fontSize: '0.8rem' }}>{p.category}</span></td>
+                          <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', fontWeight: 700 }}>{formatIDR(p.price)}</td>
+                          <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', color: p.stock <= 5 ? '#e74c3c' : '#27ae60', fontWeight: 700 }}>{p.stock}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* ── HISTORY Panel ── */}
+              {activeMenu === 'history' && (
+                <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+                  <h2 style={{ color: 'var(--accent-blue)', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}><Clock size={28}/> Riwayat Transaksi</h2>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Semua pesanan yang sudah diselesaikan tercatat di sini secara otomatis.</p>
+                  <div className="glass" style={{ padding: '1.5rem' }}>
+                    {transactions.length === 0 ? <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>Belum ada transaksi tercatat.</p> :
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                        <thead><tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                          <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Waktu</th>
+                          <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Metode</th>
+                          <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Total</th>
+                        </tr></thead>
+                        <tbody>{transactions.map(t => (
+                          <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td style={{ padding: '0.7rem 0.6rem', color: 'var(--text-secondary)' }}>{new Date(t.created_at).toLocaleString('id-ID')}</td>
+                            <td style={{ padding: '0.7rem 0.6rem' }}><span style={{ background: t.payment_method === 'cash' ? 'rgba(39,174,96,0.1)' : 'rgba(37,99,235,0.1)', color: t.payment_method === 'cash' ? '#27ae60' : 'var(--accent-blue)', borderRadius: '99px', padding: '0.2rem 0.8rem', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>{t.payment_method}</span></td>
+                            <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', fontWeight: 700 }}>{formatIDR(t.total_amount)}</td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    }
+                  </div>
+                </div>
+              )}
+
+              {/* ── REPORT Panel ── */}
+              {activeMenu === 'report' && (
+                <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                  <h2 style={{ color: 'var(--accent-blue)', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}><FileBarChart size={28}/> Laporan Penjualan</h2>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Ringkasan omset dan transaksi yang tercatat hari ini.</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+                    {[{ label: 'Total Transaksi', value: transactions.length + ' pesanan', icon: '🧾' },
+                      { label: 'Omset Hari Ini', value: formatIDR(transactions.filter(t => new Date(t.created_at).toDateString() === new Date().toDateString()).reduce((s, t) => s + (t.total_amount || 0), 0)), icon: '💰' },
+                      { label: 'Pelanggan Terdaftar', value: members.length + ' orang', icon: '👥' }].map((s, i) => (
+                      <div key={i} className="glass" style={{ padding: '1.5rem', textAlign: 'center' }}>
+                        <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{s.icon}</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-blue)' }}>{s.value}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.3rem' }}>{s.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="glass" style={{ padding: '1.5rem' }}>
+                    <h4 style={{ marginBottom: '1rem' }}>5 Transaksi Terakhir</h4>
+                    {transactions.slice(0, 5).map(t => (
+                      <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.7rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{new Date(t.created_at).toLocaleString('id-ID')}</span>
+                        <span style={{ fontWeight: 700, color: 'var(--accent-blue)' }}>{formatIDR(t.total_amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── DRAWER Panel ── */}
+              {activeMenu === 'drawer' && (
+                <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+                  <h2 style={{ color: 'var(--accent-blue)', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}><Unlock size={28}/> Laci Kasir (Drawer)</h2>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Catat saldo awal shift dan rekap tutup toko hari ini.</p>
+                  <div className="glass" style={{ padding: '2rem' }}>
+                    <h4 style={{ marginBottom: '1rem' }}>💼 Mulai Shift Baru</h4>
+                    <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.5rem' }}>Modal Awal Laci (Rp)</label>
+                    <input type="number" style={{ width: '100%', padding: '0.9rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '1rem', marginBottom: '1rem', outline: 'none' }}
+                      placeholder="100000" value={drawerAmount} onChange={e => setDrawerAmount(e.target.value)} />
+                    <button
+                      style={{ width: '100%', background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))', color: '#fff', border: 'none', borderRadius: '99px', padding: '0.9rem', fontWeight: 700, cursor: 'pointer', fontSize: '1rem' }}
+                      onClick={() => alert(`✅ Shift dimulai dengan modal Rp ${Number(drawerAmount).toLocaleString('id-ID')}`)}>Mulai Shift →</button>
+                    <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                      <h5 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Ringkasan Shift Hari Ini</h5>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Total Masuk (Tunai)</span><span style={{ fontWeight: 700 }}>{formatIDR(transactions.filter(t => t.payment_method === 'cash').reduce((s, t) => s + (t.total_amount || 0), 0))}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Total Masuk (QRIS)</span><span style={{ fontWeight: 700 }}>{formatIDR(transactions.filter(t => t.payment_method === 'qris').reduce((s, t) => s + (t.total_amount || 0), 0))}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}><span style={{ fontWeight: 700 }}>Grand Total</span><span style={{ fontWeight: 800, color: 'var(--accent-blue)' }}>{formatIDR(transactions.reduce((s, t) => s + (t.total_amount || 0), 0))}</span></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
         </div>
