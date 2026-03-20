@@ -256,7 +256,7 @@ export default function Landing() {
             animationDelay: '-2s',
           }}>
             <div style={{ height: '14px', borderRadius: '5px', background: 'rgba(58,123,213,0.12)' }} />
-            {[1,2,3].map(i => (
+            {[1, 2, 3].map(i => (
               <div key={i} style={{ flex: 1, borderRadius: '5px', background: 'rgba(255,255,255,0.8)' }} />
             ))}
           </div>

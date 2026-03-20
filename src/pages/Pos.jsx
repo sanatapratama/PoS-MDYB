@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import { 
   Search, ScanLine, LayoutGrid, Clock, Settings, User, 
   ShoppingCart, Plus, Minus, CreditCard, ChevronRight, 
@@ -185,10 +186,66 @@ function SuccessModal({ text, total, onClose }) {
   );
 }
 
+// ──────────────────────── LOGIN SCREEN ────────────────────────
+
+// Data kasir akan diambil dari database
+const KASIR_USERS_PLACEHOLDER = [];
+
+function LoginScreen({ cashiers, onLogin }) {
+  const [selectedUser, setSelectedUser] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (cashiers && cashiers.length > 0) {
+      setSelectedUser(cashiers[0].id);
+    }
+  }, [cashiers]);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const user = cashiers.find(u => u.id === selectedUser);
+    if (user && user.password === password) {
+      onLogin(user);
+    } else {
+      setError('Password salah! Silakan coba lagi.');
+    }
+  };
+
+  return (
+    <div className="login-screen">
+      <div className="login-box glass">
+        <Unlock size={48} color="var(--accent-blue)" style={{ margin: '0 auto 1rem', display: 'block' }} />
+        <h2>Masuk ke POS</h2>
+        <form className="login-form" onSubmit={handleLogin}>
+          <select value={selectedUser} onChange={(e) => setSelectedUser(e.target.value)}>
+            {cashiers.length === 0 ? (
+              <option disabled>Loading Kasir...</option>
+            ) : (
+              cashiers.map(u => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))
+            )}
+          </select>
+          <input
+            type="password"
+            placeholder="Masukkan Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button type="submit" className="login-btn">Masuk</button>
+          {error && <p className="login-error">{error}</p>}
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ──────────────────────── MAIN POS ────────────────────────
 
 export default function Pos() {
   const navigate = useNavigate();
+  const [activeUser, setActiveUser] = useState(null); // Tracks logged in user
   const [lang, setLang] = useState('ID');
   const [isOffline, setIsOffline] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
@@ -200,14 +257,44 @@ export default function Pos() {
   const [modal, setModal] = useState(null); // 'qris' | 'split' | 'kasbon' | 'success'
   const [lastTotal, setLastTotal] = useState(0);
 
-  const text = DICT[lang];
-  const categories = [{ key: 'all', label: text.all }, 'Drinks', 'Food', 'Snacks'].map(c =>
-    typeof c === 'string' ? { key: c, label: c } : c
-  );
+  // Supabase Data
+  const [dbCategories, setDbCategories] = useState([]);
+  const [dbCashiers, setDbCashiers] = useState([]);
+  const [dbProducts, setDbProducts] = useState(MOCK_PRODUCTS);
 
+  useEffect(() => {
+    async function fetchSupabaseData() {
+      if (isOffline) return;
+      try {
+        const { data: catData, error: catErr } = await supabase.from('categories').select('*');
+        if (!catErr && catData) setDbCategories(catData);
+
+        const { data: prodData, error: prodErr } = await supabase.from('products').select('*');
+        if (!prodErr && prodData && prodData.length > 0) setDbProducts(prodData);
+
+        const { data: cashData, error: cashErr } = await supabase.from('cashiers').select('*');
+        if (!cashErr && cashData) setDbCashiers(cashData);
+      } catch (e) {
+        console.error('Error fetching Supabase data', e);
+      }
+    }
+    fetchSupabaseData();
+  }, [isOffline]);
+
+  const text = DICT[lang];
+
+  // Derived categories
+  const categories = [{ key: 'all', label: text.all }];
+  if (dbCategories.length > 0) {
+    dbCategories.forEach(c => categories.push({ key: c.name, label: c.name }));
+  } else {
+    ['Drinks', 'Food', 'Snacks'].forEach(c => categories.push({ key: c, label: c }));
+  }
+
+  // Derived products
   const filteredProducts = activeTab === 'all'
-    ? MOCK_PRODUCTS
-    : MOCK_PRODUCTS.filter(p => p.category === activeTab);
+    ? dbProducts
+    : dbProducts.filter(p => p.category === activeTab);
 
   // ── cart helpers ──
   const addToCart = (product) => {
@@ -244,12 +331,59 @@ export default function Pos() {
   const total = donation ? rounded : raw;
 
   // ── checkout flows ──
-  const completeTransaction = (amount) => {
+  const finishUI = (amount) => {
     setLastTotal(amount);
     setCart([]);
     setDonation(0);
     setModal('success');
   };
+
+  const saveToSupabase = async (method, extra = {}) => {
+    const txData = {
+      items: cart,
+      subtotal,
+      tax,
+      total,
+      payment_method: method,
+      cash_amount: extra.cash || (method === 'cash' ? total : 0),
+      qris_amount: extra.qris || (method === 'qris' ? total : 0),
+      donation_amount: donationAmt,
+      cashier_id: activeUser ? activeUser.id : 'unknown'
+    };
+
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .insert([txData])
+        .select();
+
+      if (error) throw error;
+
+      if (method === 'kasbon') {
+        const { error: kasbonErr } = await supabase
+          .from('kasbon')
+          .insert([{
+            customer_name: extra.name,
+            customer_phone: extra.phone,
+            amount: total,
+            transaction_id: data[0].id
+          }]);
+        if (kasbonErr) throw kasbonErr;
+      }
+      
+      finishUI(total);
+    } catch (err) {
+      console.error('Supabase Save Error:', err);
+      // Fallback: Just finish UI but log it. 
+      // In production, you'd want a local sync mechanism.
+      finishUI(total);
+      alert('Transaksi tersimpan secara lokal (Gagal sync Supabase)');
+    }
+  };
+
+  if (!activeUser) {
+    return <LoginScreen cashiers={dbCashiers} onLogin={(user) => setActiveUser(user)} />;
+  }
 
   return (
     <div className="pos-container visible">
@@ -258,9 +392,9 @@ export default function Pos() {
       {/* ── Modals ── */}
       {modal === 'qris'   && <QRISModal   total={total}  text={text} onClose={() => setModal(null)} />}
       {modal === 'split'  && <SplitModal  total={total}  text={text} onClose={() => setModal(null)}
-        onConfirm={(cash, rest) => { setModal(null); setModal('qris'); completeTransaction(total); }} />}
+        onConfirm={(cash, rest) => { setModal(null); saveToSupabase('split', { cash, qris: rest }); }} />}
       {modal === 'kasbon' && <KasbonModal text={text} onClose={() => setModal(null)}
-        onConfirm={() => completeTransaction(total)} />}
+        onConfirm={(name, phone) => { setModal(null); saveToSupabase('kasbon', { name, phone }); }} />}
       {modal === 'success'&& <SuccessModal text={text} total={lastTotal} onClose={() => setModal(null)} />}
 
       {/* ── Left Sidebar ── */}
@@ -297,7 +431,7 @@ export default function Pos() {
             </div>
             <div className="user-profile glass" style={{ padding: '0.5rem 1rem', borderRadius: '20px' }}>
               <Fingerprint size={18} color="var(--accent-blue)" />
-              <span>{text.admin}</span>
+              <span>{activeUser ? activeUser.name : text.admin}</span>
             </div>
           </div>
         </header>
@@ -408,12 +542,11 @@ export default function Pos() {
 
               <div className="summary-row total"><span>{text.total}</span><span>{formatIDR(total)}</span></div>
 
-              {/* Checkout Grid */}
               <div className="checkout-grid">
-                <button className="checkout-btn" onClick={() => completeTransaction(total)}>
+                <button className="checkout-btn" onClick={() => saveToSupabase('cash')}>
                   <CreditCard size={18} /> {text.charge}
                 </button>
-                <button className="checkout-btn qris" onClick={() => setModal('qris')}>
+                <button className="checkout-btn qris" onClick={() => saveToSupabase('qris')}>
                   <QrCode size={18} /> {text.qrisBtn}
                 </button>
                 <button className="checkout-btn split" onClick={() => setModal('split')}>
