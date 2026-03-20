@@ -156,13 +156,40 @@ function KasbonModal({ text, onClose, onConfirm }) {
   );
 }
 
-function SuccessModal({ text, total, onClose }) {
-  const [waNum, setWaNum] = useState('');
+function SuccessModal({ text, total, cart, payMethod, customer, onClose }) {
+  const [waNum, setWaNum] = useState(customer?.phone || '');
+
+  const buildWAMessage = () => {
+    const now = new Date();
+    const txId = 'SL' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getTime()).slice(-5);
+    const itemLines = (cart || []).map(item => {
+      const p = item.price * (1 - (item.discount || 0));
+      return `• ${item.name} x${item.qty} = ${formatIDR(p * item.qty)}`;
+    }).join('\n');
+    const subtotalAmt = (cart || []).reduce((s, i) => s + i.price * (1 - (i.discount || 0)) * i.qty, 0);
+    const taxAmt = Math.round(subtotalAmt * 0.11);
+    return encodeURIComponent(
+`🏮 *Si Lentera - by MDYB Store*
+━━━━━━━━━━━━━━━━━━
+Struk Belanja #${txId}
+📅 ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+${customer ? `👤 Pelanggan: ${customer.name}` : ''}
+━━━━━━━━━━━━━━━━━━
+${itemLines}
+━━━━━━━━━━━━━━━━━━
+Subtotal: ${formatIDR(subtotalAmt)}
+Pajak (11%): ${formatIDR(taxAmt)}
+*TOTAL: ${formatIDR(total)}*
+Metode: ${(payMethod || '').toUpperCase()}
+━━━━━━━━━━━━━━━━━━
+🙏 Terima kasih sudah berbelanja!
+_Si Lentera · Solusi Kasir Ringan_`);
+  };
 
   const sendWA = () => {
-    const msg = encodeURIComponent(`Struk Belanja MDYB Store\nTotal: ${formatIDR(total)}\nTerima kasih sudah berbelanja!`);
-    const num = waNum.replace(/^0/, '62');
-    window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
+    if (!waNum.trim()) return alert('Masukkan nomor WhatsApp pelanggan');
+    const num = waNum.replace(/^0/, '62').replace(/\D/g, '');
+    window.open(`https://wa.me/${num}?text=${buildWAMessage()}`, '_blank');
   };
 
   return (
@@ -257,6 +284,22 @@ export default function Pos() {
   // Modals
   const [modal, setModal] = useState(null);
   const [lastTotal, setLastTotal] = useState(0);
+  const [lastMethod, setLastMethod] = useState('cash');
+  const [lastCart, setLastCart] = useState([]);
+
+  // Settings
+  const [viewMode, setViewMode] = useState(localStorage.getItem('viewMode') || 'website');
+  const [isDarkMode, setIsDarkMode] = useState(localStorage.getItem('darkMode') === 'true');
+  const [paperSize, setPaperSize] = useState(localStorage.getItem('paperSize') || '80mm');
+
+  // Sync to localStorage and body
+  useEffect(() => {
+    localStorage.setItem('viewMode', viewMode);
+    localStorage.setItem('darkMode', isDarkMode);
+    localStorage.setItem('paperSize', paperSize);
+    if (isDarkMode) document.body.classList.add('dark-mode');
+    else document.body.classList.remove('dark-mode');
+  }, [viewMode, isDarkMode, paperSize]);
 
   // Modul state
   const [members, setMembers] = useState([]);
@@ -361,10 +404,14 @@ export default function Pos() {
   const total = donation ? rounded : raw;
 
   // ── checkout flows ──
-  const finishUI = (amount) => {
+  const finishUI = (amount, method) => {
     setLastTotal(amount);
+    setLastMethod(method || 'cash');
+    setLastCart([...cart]);
     setCart([]);
     setDonation(0);
+    setDiscountInput('');
+    setNoteInput('');
     setModal('success');
   };
 
@@ -373,41 +420,32 @@ export default function Pos() {
       items: cart,
       subtotal,
       tax,
-      total,
+      total: Math.round(total),
       payment_method: method,
-      cash_amount: extra.cash || (method === 'cash' ? total : 0),
-      qris_amount: extra.qris || (method === 'qris' ? total : 0),
+      cash_amount: extra.cash || (method === 'cash' ? Math.round(total) : 0),
+      qris_amount: extra.qris || (method === 'qris' ? Math.round(total) : 0),
       donation_amount: donationAmt,
-      cashier_id: activeUser ? activeUser.id : 'unknown'
+      cashier_id: activeUser ? activeUser.id : null
     };
 
+    // Optimistic: show success immediately, sync in background
+    finishUI(Math.round(total), method);
+
     try {
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert([txData])
-        .select();
+      const { data, error } = await supabase.from('transactions').insert([txData]).select();
+      if (error) { console.warn('Supabase sync failed (non-blocking):', error.message); return; }
 
-      if (error) throw error;
-
-      if (method === 'kasbon') {
-        const { error: kasbonErr } = await supabase
-          .from('kasbon')
-          .insert([{
-            customer_name: extra.name,
-            customer_phone: extra.phone,
-            amount: total,
-            transaction_id: data[0].id
-          }]);
-        if (kasbonErr) throw kasbonErr;
+      if (method === 'kasbon' && extra.name) {
+        const { error: kasbonErr } = await supabase.from('members')
+          .upsert([{ name: extra.name, phone: extra.phone || null, debt_balance: Math.round(total) }], { onConflict: 'phone' });
+        if (kasbonErr) console.warn('Kasbon upsert failed:', kasbonErr.message);
       }
-      
-      finishUI(total);
+
+      // Refresh transaction list
+      const { data: txList } = await supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(50);
+      if (txList) setTransactions(txList);
     } catch (err) {
-      console.error('Supabase Save Error:', err);
-      // Fallback: Just finish UI but log it. 
-      // In production, you'd want a local sync mechanism.
-      finishUI(total);
-      alert('Transaksi tersimpan secara lokal (Gagal sync Supabase)');
+      console.warn('Unexpected error (non-blocking):', err.message);
     }
   };
 
@@ -437,9 +475,9 @@ export default function Pos() {
     const printContent = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Nota Si Lentera</title>
 <style>
-  @page { margin: 0; size: 80mm auto; }
+  @page { margin: 0; size: ${paperSize} auto; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10pt; color: #111; width: 80mm; background: #fff; padding: 10px 8px 20px; }
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10pt; color: #111; width: ${paperSize === '80mm' ? '80mm' : '58mm'}; background: #fff; padding: 10px 8px 20px; }
 
   /* Header */
   .logo-wrap { text-align: center; margin-bottom: 10px; }
@@ -542,7 +580,7 @@ export default function Pos() {
   }
 
   return (
-    <div className="pos-container visible">
+    <div className={`pos-container visible view-${viewMode} ${isDarkMode ? 'dark-mode' : ''}`}>
       <div className="motion-lines" />
 
       {/* ── Modals ── */}
@@ -551,7 +589,7 @@ export default function Pos() {
         onConfirm={(cash, rest) => { setModal(null); saveToSupabase('split', { cash, qris: rest }); }} />}
       {modal === 'kasbon' && <KasbonModal text={text} onClose={() => setModal(null)}
         onConfirm={(name, phone) => { setModal(null); saveToSupabase('kasbon', { name, phone }); }} />}
-      {modal === 'success'&& <SuccessModal text={text} total={lastTotal} onClose={() => setModal(null)} />}
+      {modal === 'success' && <SuccessModal text={text} total={lastTotal} cart={lastCart} payMethod={lastMethod} customer={selectedCustomer} onClose={() => setModal(null)} />}
 
       {/* ── Left Sidebar ── */}
       <aside className="pos-sidebar-left glass">
@@ -563,7 +601,7 @@ export default function Pos() {
         <div className={`nav-icon ${activeMenu === 'report' ? 'active' : ''}`} onClick={() => setActiveMenu('report')}><FileBarChart size={26}/><span className="nav-label">REPORT</span></div>
         <div className={`nav-icon ${activeMenu === 'stock' ? 'active' : ''}`} onClick={() => setActiveMenu('stock')}><Package size={26}/><span className="nav-label">STOCK</span></div>
         <div className={`nav-icon ${activeMenu === 'drawer' ? 'active' : ''}`} onClick={() => setActiveMenu('drawer')}><Unlock size={26}/><span className="nav-label">DRAWER</span></div>
-        <div className="nav-icon" style={{ marginTop: 'auto' }}><Settings size={26}/><span className="nav-label">OPTIONS</span></div>
+        <div className={`nav-icon ${activeMenu === 'options' ? 'active' : ''}`} style={{ marginTop: 'auto' }} onClick={() => setActiveMenu('options')}><Settings size={26}/><span className="nav-label">OPTIONS</span></div>
       </aside>
 
       {/* ── Main ── */}
@@ -1004,6 +1042,74 @@ export default function Pos() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Total Masuk (Tunai)</span><span style={{ fontWeight: 700 }}>{formatIDR(transactions.filter(t => t.payment_method === 'cash').reduce((s, t) => s + (t.total_amount || 0), 0))}</span></div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Total Masuk (QRIS)</span><span style={{ fontWeight: 700 }}>{formatIDR(transactions.filter(t => t.payment_method === 'qris').reduce((s, t) => s + (t.total_amount || 0), 0))}</span></div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}><span style={{ fontWeight: 700 }}>Grand Total</span><span style={{ fontWeight: 800, color: 'var(--accent-blue)' }}>{formatIDR(transactions.reduce((s, t) => s + (t.total_amount || 0), 0))}</span></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── OPTIONS Panel ── */}
+              {activeMenu === 'options' && (
+                <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+                  <h2 style={{ color: 'var(--accent-blue)', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}><Settings size={28}/> Pengaturan Sistem</h2>
+                  <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Sesuaikan tampilan dan fitur POS sesuai kebutuhan toko Anda.</p>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
+                    {/* Tampilan */}
+                    <div className="glass" style={{ padding: '1.5rem' }}>
+                      <h4 style={{ marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><LayoutGrid size={20}/> Mode Tampilan (Layout)</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+                        {['mobile', 'notebook', 'website'].map((mode) => (
+                          <div 
+                            key={mode}
+                            onClick={() => setViewMode(mode)}
+                            style={{ 
+                              padding: '1rem', textAlign: 'center', borderRadius: '12px', cursor: 'pointer',
+                              border: viewMode === mode ? '2px solid var(--accent-blue)' : '1px solid #e2e8f0',
+                              background: viewMode === mode ? 'rgba(37,99,235,0.05)' : 'transparent',
+                              transition: 'all 0.2s'
+                            }}>
+                            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{mode === 'mobile' ? '📱' : mode === 'notebook' ? '💻' : '🌐'}</div>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700, textTransform: 'capitalize' }}>{mode}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Mode Gelap */}
+                    <div className="glass" style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h4 style={{ marginBottom: '0.3rem' }}>🌗 Mode Gelap / Terang</h4>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Ubah nuansa aplikasi untuk kenyamanan mata.</p>
+                      </div>
+                      <button 
+                        onClick={() => setIsDarkMode(!isDarkMode)}
+                        style={{ 
+                          padding: '0.6rem 1.5rem', borderRadius: '99px', border: 'none', fontWeight: 700, cursor: 'pointer',
+                          background: isDarkMode ? '#334155' : '#f1f5f9', color: isDarkMode ? '#fff' : '#0f172a'
+                        }}>
+                        {isDarkMode ? '🌙 Dark Mode' : '☀️ Light Mode'}
+                      </button>
+                    </div>
+
+                    {/* Printer */}
+                    <div className="glass" style={{ padding: '1.5rem' }}>
+                      <h4 style={{ marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Printer size={20}/> Ukuran Kertas Printer (Thermal)</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                        {['58mm', '80mm'].map((size) => (
+                          <div 
+                            key={size}
+                            onClick={() => setPaperSize(size)}
+                            style={{ 
+                              padding: '1rem', textAlign: 'center', borderRadius: '12px', cursor: 'pointer',
+                              border: paperSize === size ? '2px solid var(--accent-blue)' : '1px solid #e2e8f0',
+                              background: paperSize === size ? 'rgba(37,99,235,0.05)' : 'transparent',
+                              transition: 'all 0.2s'
+                            }}>
+                            <div style={{ fontWeight: 800, fontSize: '1.1rem' }}>{size}</div>
+                            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Kertas Thermal Umum</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
