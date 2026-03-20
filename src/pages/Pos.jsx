@@ -273,9 +273,15 @@ export default function Pos() {
         if (!prodErr && prodData && prodData.length > 0) setDbProducts(prodData);
 
         const { data: cashData, error: cashErr } = await supabase.from('cashiers').select('*');
-        if (!cashErr && cashData) setDbCashiers(cashData);
+        if (cashErr) {
+          setDbCashiers([{ id: 'error', name: `⚠️ Error: ${cashErr.message || 'Gagal Konek URL'}` }]);
+        } else if (cashData && cashData.length > 0) {
+          setDbCashiers(cashData);
+        } else {
+          setDbCashiers([{ id: 'error', name: `⚠️ Tabel Kasir Masih Kosong` }]);
+        }
       } catch (e) {
-        console.error('Error fetching Supabase data', e);
+        setDbCashiers([{ id: 'error', name: `⚠️ Fatal: ${e.message}` }]);
       }
     }
     fetchSupabaseData();
