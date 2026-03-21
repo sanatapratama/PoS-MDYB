@@ -113,14 +113,11 @@ function formatIDR(num) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
 }
 
-// ──────────────────────── MODALS ────────────────────────
-
 function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
-  const [method, setMethod] = useState('cash'); 
+  const [method, setMethod] = useState('cash');
   const [cashGiven, setCashGiven] = useState('');
-  
+
   const cashNum = parseFloat(cashGiven.replace(/\D/g, '')) || 0;
-  
   const denominations = [10000, 20000, 50000, 100000, 'Pas'];
 
   let change = 0;
@@ -132,8 +129,6 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
     remaining = Math.max(total - cashNum, 0);
   }
 
-  const [autoPrint, setAutoPrint] = useState(false);
-
   const handlePay = () => {
     if (method === 'cash' && cashNum > 0 && cashNum < total) {
       return alert('Uang tunai kurang dari total tagihan!');
@@ -144,8 +139,7 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
     if (method === 'kasbon' && !selectedCustomer) {
       if (!window.confirm('Belum ada pelanggan dipilih. Yakin catat kasbon ke pelanggan anonim?')) return;
     }
-    
-    onConfirm({ method, cashGiven: cashNum, splitQris: remaining, autoPrint });
+    onConfirm({ method, cashGiven: cashNum, splitQris: remaining });
   };
 
   return (
@@ -158,7 +152,7 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', marginBottom: '1.2rem' }}>
           {['cash', 'qris', 'split', 'kasbon'].map(m => (
-            <button key={m} onClick={() => setMethod(m)} 
+            <button key={m} onClick={() => setMethod(m)}
               style={{
                 padding: '0.8rem 0.4rem', borderRadius: '12px', border: method === m ? '2px solid var(--accent-blue)' : '1px solid #e2e8f0',
                 background: method === m ? '#eff6ff' : 'white', color: method === m ? 'var(--accent-blue)' : 'var(--text-secondary)',
@@ -180,7 +174,6 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
             </label>
             <input type="number" autoFocus placeholder="0" value={cashGiven} onChange={e => setCashGiven(e.target.value)}
               style={{ width: '100%', padding: '0.8rem', fontSize: '1.5rem', fontWeight: 800, borderRadius: '12px', border: '2px solid #cbd5e1', outline: 'none', color: 'var(--accent-blue)' }} />
-            
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem', marginTop: '0.8rem' }}>
               {denominations.map(d => (
                 <button key={d} onClick={() => setCashGiven(d === 'Pas' ? String(total) : String(d))}
@@ -189,14 +182,12 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
                 </button>
               ))}
             </div>
-
             {method === 'cash' && cashGiven && (
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: remaining > 0 ? '#fff1f2' : '#f0fdf4', borderRadius: '12px', marginTop: '1rem', border: remaining > 0 ? '1px solid #fecaca' : '1px solid #bbf7d0' }}>
                 <span style={{ fontWeight: 600, color: remaining > 0 ? '#e11d48' : '#16a34a' }}>{remaining > 0 ? 'Kurang' : 'Kembali'}</span>
                 <span style={{ fontWeight: 800, fontSize: '1.1rem', color: remaining > 0 ? '#e11d48' : '#16a34a' }}>{formatIDR(remaining > 0 ? remaining : change)}</span>
               </div>
             )}
-            
             {method === 'split' && cashGiven && (
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f0f9ff', borderRadius: '12px', marginTop: '1rem', border: '1px solid #bae6fd' }}>
                 <span style={{ fontWeight: 600, color: '#0284c7' }}>Sisa QRIS</span>
@@ -229,40 +220,38 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
           </div>
         )}
 
-        <div style={{ margin: '1rem 0', textAlign: 'left', padding: '0.8rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setAutoPrint(!autoPrint)}>
-          <input type="checkbox" checked={autoPrint} onChange={() => {}} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
-          <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <Bluetooth size={16} color="#2563eb" /> Cetak Struk Bluetooth Otomatis
-          </span>
-        </div>
-
-        <button onClick={handlePay} 
+        <button onClick={handlePay}
           disabled={method === 'kasbon' && !selectedCustomer}
-          style={{ width: '100%', padding: '1.2rem', borderRadius: '14px', background: (method === 'kasbon' && !selectedCustomer) ? '#cbd5e1' : 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))', color: 'white', fontWeight: 800, fontSize: '1rem', border: 'none', cursor: (method === 'kasbon' && !selectedCustomer) ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(58, 123, 213, 0.2)' }}>
-          {method === 'qris' ? 'KONFIRMASI BAYAR QRIS' : method === 'kasbon' ? 'CATAT SEBAGAI HUTANG' : 'SELESAIKAN TRANSAKSI'}
+          style={{ width: '100%', padding: '1.2rem', borderRadius: '14px', background: (method === 'kasbon' && !selectedCustomer) ? '#cbd5e1' : 'linear-gradient(135deg, #10b981, #059669)', color: 'white', fontWeight: 800, fontSize: '1rem', border: 'none', cursor: (method === 'kasbon' && !selectedCustomer) ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(16,185,129,0.3)', marginBottom: '0.6rem' }}>
+          💳 {method === 'qris' ? 'KONFIRMASI BAYAR QRIS' : method === 'kasbon' ? 'CATAT SEBAGAI HUTANG' : 'SELESAIKAN TRANSAKSI'}
         </button>
-        <button className="modal-close" onClick={onClose} style={{ marginTop: '0.8rem', opacity: 0.6 }}>Batal & Kembali</button>
+        <button onClick={onClose} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', background: 'transparent', border: '1px solid #e2e8f0', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}>Batal &amp; Kembali</button>
       </div>
     </div>
   );
 }
 
-function SuccessModal({ text, total, onClose, onBluetoothPrint }) {
+function SuccessModal({ total, onClose, onBluetoothPrint, onSendWA }) {
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <div className="success-icon"><CheckCircle size={40} /></div>
-        <h3>{text.successTitle}</h3>
+        <div className="success-icon"><CheckCircle size={48} color="#10b981" /></div>
+        <h3 style={{ color: '#10b981', marginBottom: '0.3rem' }}>Transaksi Berhasil! ✅</h3>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-          Total dibayar: <strong>{formatIDR(total)}</strong>
+          Total: <strong style={{ color: 'var(--text-primary)', fontSize: '1.2rem' }}>{formatIDR(total)}</strong>
         </p>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-          <button className="checkout-btn" onClick={onBluetoothPrint} style={{ width: '100%', background: '#2563eb', color: 'white' }}>
-            <Bluetooth size={18} /> Cetak Struk Bluetooth
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+          <button onClick={onBluetoothPrint}
+            style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.95rem' }}>
+            <Bluetooth size={20} /> Cetak Struk Bluetooth
           </button>
-          <button className="checkout-btn" onClick={onClose} style={{ width: '100%', background: '#f1f5f9', color: '#334155', border: '1px solid #e2e8f0' }}>
-            Tutup & Lanjut
+          <button onClick={onSendWA}
+            style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: '#25D366', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.95rem' }}>
+            <MessageCircle size={20} /> Kirim Bukti ke WA
+          </button>
+          <button onClick={onClose}
+            style={{ width: '100%', padding: '0.9rem', borderRadius: '12px', background: '#f1f5f9', color: '#334155', fontWeight: 600, border: '1px solid #e2e8f0', cursor: 'pointer', fontSize: '0.9rem' }}>
+            Tutup &amp; Transaksi Baru
           </button>
         </div>
       </div>
@@ -270,60 +259,42 @@ function SuccessModal({ text, total, onClose, onBluetoothPrint }) {
   );
 }
 
-function WAModal({ text, cart, total, payMethod, customer, onClose }) {
-  const [waNum, setWaNum] = useState(customer?.phone || '');
 
+function WAQuickSend({ total, cart, payMethod, customer, waNum, onClose }) {
   const buildWAMessage = () => {
     const now = new Date();
     const txId = 'SL' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getTime()).slice(-5);
     const itemLines = (cart || []).map(item => {
-      const p = item.price * (1 - (item.discount || 0));
-      return `• ${item.name} x${item.qty} = ${formatIDR(p * item.qty)}`;
+      return `• ${item.name} x${item.qty}  ${formatIDR(item.price * item.qty)}`;
     }).join('\n');
-    const subtotalAmt = (cart || []).reduce((s, i) => s + i.price * (1 - (i.discount || 0)) * i.qty, 0);
-    const taxAmt = Math.round(subtotalAmt * 0.11);
+    const subtotalAmt = (cart || []).reduce((s, i) => s + i.price * i.qty, 0);
     return encodeURIComponent(
-`🏮 *Si Lentera - by MDYB Store*
-━━━━━━━━━━━━━━━━━━
-Struk Belanja #${txId}
-📅 ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-${customer ? `👤 Pelanggan: ${customer.name}` : ''}
-━━━━━━━━━━━━━━━━━━
+`*Nota Si Lentera*
+${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB${customer ? `\nPlg: ${customer.name}` : ''}
+─────────────────
 ${itemLines}
-━━━━━━━━━━━━━━━━━━
-Subtotal: ${formatIDR(subtotalAmt)}
-Pajak (11%): ${formatIDR(taxAmt)}
-*TOTAL: ${formatIDR(total)}*
-Metode: ${(payMethod || 'Manual').toUpperCase()}
-━━━━━━━━━━━━━━━━━━
-🙏 Terima kasih sudah berbelanja!
-_Si Lentera · Solusi Kasir Ringan_`);
+─────────────────
+Total: *${formatIDR(subtotalAmt)}*
+Metode: ${(payMethod || '').toUpperCase()}
+─────────────────
+Terima kasih! 🙏`);
   };
 
-  const sendWA = () => {
-    if (!waNum.trim()) return alert('Masukkan nomor WhatsApp pelanggan');
+  const send = () => {
+    if (!waNum) {
+      alert('Nomor WA pelanggan tidak tersedia. Pilih pelanggan terlebih dahulu.');
+      onClose();
+      return;
+    }
     const num = waNum.replace(/^0/, '62').replace(/\D/g, '');
     window.open(`https://wa.me/${num}?text=${buildWAMessage()}`, '_blank');
     onClose();
   };
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <div style={{ color: '#25D366', marginBottom: '1rem' }}><MessageCircle size={40} /></div>
-        <h3>Kirim Tagihan WA</h3>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Kirimkan rincian pesanan ke pelanggan secara digital.</p>
-        <div className="split-inputs" style={{ textAlign: 'left' }}>
-          <label>Nomor WhatsApp Pelanggan</label>
-          <input placeholder="0812xxxxxxxx" value={waNum} onChange={e => setWaNum(e.target.value)} />
-        </div>
-        <button className="wa-btn" onClick={sendWA} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: '#25D366', color: 'white', border: 'none', padding: '0.8rem', borderRadius: '12px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer' }}>
-          <MessageCircle size={20} />Kirim Pesan WA
-        </button>
-        <button className="modal-close" onClick={onClose}>{text.closeBtn}</button>
-      </div>
-    </div>
-  );
+  // Auto-open WA directly
+  useEffect(() => { send(); }, []);
+
+  return null; // No modal rendered, directly opens WA
 }
 
 // ──────────────────────── LOGIN SCREEN ────────────────────────
@@ -815,33 +786,49 @@ export default function Pos() {
       <div className="motion-lines" />
 
       {/* ── Modals ── */}
-      {modal === 'payment' && <PaymentModal total={total} selectedCustomer={selectedCustomer} onClose={() => setModal(null)} onConfirm={({ method, cashGiven, splitQris, autoPrint }) => {
-        // Capture everything before state reset
+      {modal === 'payment' && <PaymentModal total={total} selectedCustomer={selectedCustomer} onClose={() => setModal(null)} onConfirm={({ method, cashGiven, splitQris }) => {
+        // Capture everything before state is reset
         const itemsToSave = [...cart];
         const grandTotal = Math.round(total);
         const customerSnapshot = selectedCustomer;
         const methodLabel = method === 'split' ? 'Campuran' : method === 'cash' ? 'Tunai' : method === 'kasbon' ? 'Kasbon' : 'QRIS';
 
-        // 1. Process database & UI reset
-        saveToSupabase(itemsToSave, grandTotal, method, { 
-          cash: cashGiven, 
-          qris: splitQris, 
-          name: customerSnapshot?.name, 
-          phone: customerSnapshot?.phone 
+        // Save + reset UI
+        saveToSupabase(itemsToSave, grandTotal, method, {
+          cash: cashGiven,
+          qris: splitQris,
+          name: customerSnapshot?.name,
+          phone: customerSnapshot?.phone
         });
-        
-        // 2. Clear modal
         setModal(null);
-        
-        // 3. Print
-        if (autoPrint) {
-          printBluetooth(itemsToSave, methodLabel, grandTotal, customerSnapshot);
-        } else {
-          printReceipt(methodLabel);
-        }
       }} />}
-      {modal === 'success' && <SuccessModal text={text} total={lastTotal} cart={lastCart} payMethod={lastMethod} customer={selectedCustomer} onClose={() => setModal(null)} onBluetoothPrint={() => printBluetooth(lastCart, lastMethod, lastTotal, selectedCustomer)} />}
-      {modal === 'wa'      && <WAModal text={text} total={Math.round(total)} cart={cart} payMethod="Manual" customer={selectedCustomer} onClose={() => setModal(null)} />}
+      {modal === 'success' && <SuccessModal
+        total={lastTotal}
+        onClose={() => setModal(null)}
+        onBluetoothPrint={() => printBluetooth(lastCart, lastMethod, lastTotal, selectedCustomer)}
+        onSendWA={() => {
+          if (!selectedCustomer?.phone) {
+            alert('Pilih pelanggan dengan nomor WA terlebih dahulu.');
+            return;
+          }
+          const now = new Date();
+          const items = (lastCart || []).map(i => `• ${i.name} x${i.qty}  ${formatIDR(i.price * i.qty)}`).join('\n');
+          const sub = (lastCart || []).reduce((s, i) => s + i.price * i.qty, 0);
+          const msg = encodeURIComponent(
+`*Nota Si Lentera*
+${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+Plg: ${selectedCustomer.name}
+─────────────────
+${items}
+─────────────────
+Total: *${formatIDR(sub)}*
+Metode: ${(lastMethod || '').toUpperCase()}
+─────────────────
+Terima kasih! 🙏`);
+          const num = selectedCustomer.phone.replace(/^0/, '62').replace(/\D/g, '');
+          window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
+        }}
+      />}
 
       {/* ── Left Sidebar ── */}
       <aside className="pos-sidebar-left glass">
@@ -1040,21 +1027,6 @@ export default function Pos() {
                   style={{ width: '100%', padding: '1.2rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #10b981, #059669)' }}
                 >
                   💳 BAYAR TEPAT / UBAH NOMINAL
-                </button>
-              </div>
-              
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem' }}>
-                <button
-                  onClick={() => printBluetooth(cart, 'Manual', total, selectedCustomer)}
-                  disabled={cart.length === 0}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', color: cart.length === 0 ? '#94a3b8' : 'var(--text-primary)', fontWeight: 600, cursor: cart.length === 0 ? 'not-allowed' : 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' }}>
-                  <Printer size={18} color={cart.length === 0 ? '#94a3b8' : 'var(--accent-blue)'} /> Nota Bluetooth
-                </button>
-                <button
-                  onClick={() => setModal('wa')}
-                  disabled={cart.length === 0}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', background: '#ecfdf5', border: '1px solid #a7f3d0', color: cart.length === 0 ? '#94a3b8' : '#059669', fontWeight: 600, cursor: cart.length === 0 ? 'not-allowed' : 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' }}>
-                  <MessageCircle size={18} /> Kirim ke WA
                 </button>
               </div>
             </div>

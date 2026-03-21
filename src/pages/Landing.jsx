@@ -109,10 +109,10 @@ export default function Landing() {
       {/* ── NAVBAR ── */}
       <nav className="navbar glass">
         <div className="nav-brand" style={{ display: 'flex', alignItems: 'center' }}>
-          <img 
-            src="https://res.cloudinary.com/dsichsufc/image/upload/e_make_transparent:20/v1774079104/logo_silentera_l5nepu.png" 
-            alt="Si Lentera Logo" 
-            style={{ height: '40px', objectFit: 'contain' }} 
+          <img
+            src="https://res.cloudinary.com/dsichsufc/image/upload/e_make_transparent:20/v1774079104/logo_silentera_l5nepu.png"
+            alt="Si Lentera Logo"
+            style={{ height: '40px', objectFit: 'contain' }}
           />
         </div>
 
@@ -157,18 +157,18 @@ export default function Landing() {
 
         {/* Title */}
         <h1 style={{ maxWidth: '850px', margin: '0 auto', marginBottom: '2.5rem' }}>
-          <img 
-            src="https://res.cloudinary.com/dsichsufc/image/upload/e_make_transparent:20/v1774079104/logo_silentera_l5nepu.png" 
-            alt="Si Lentera Logo" 
-            style={{ 
-              width: '100%', 
-              maxWidth: '550px', 
-              objectFit: 'contain', 
-              display: 'block', 
-              margin: '0 auto', 
+          <img
+            src="https://res.cloudinary.com/dsichsufc/image/upload/e_make_transparent:20/v1774079104/logo_silentera_l5nepu.png"
+            alt="Si Lentera Logo"
+            style={{
+              width: '100%',
+              maxWidth: '550px',
+              objectFit: 'contain',
+              display: 'block',
+              margin: '0 auto',
               filter: 'drop-shadow(0 25px 45px rgba(6, 182, 212, 0.4)) drop-shadow(0 5px 15px rgba(0, 0, 0, 0.05))',
               transform: 'scale(1.02)'
-            }} 
+            }}
           />
         </h1>
 
@@ -196,7 +196,7 @@ export default function Landing() {
 
         {/* Floating device art clustered */}
         <div style={{ position: 'relative', width: '100%', maxWidth: '800px', height: '320px', marginTop: '3rem', perspective: '1200px', display: 'flex', justifyContent: 'center' }}>
-          
+
           {/* Main App Mockup (Laptop) */}
           <div className="glass float-antigravity" style={{
             position: 'absolute', top: 0,
@@ -211,13 +211,13 @@ export default function Landing() {
               <div style={{ width: '20%', borderRadius: '8px', background: 'rgba(37, 99, 235, 0.05)' }} />
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                 <div style={{ display: 'flex', gap: '0.6rem', flex: 1 }}>
-                  {[1,2,3].map(i => <div key={i} style={{ flex: 1, borderRadius: '8px', background: 'rgba(6, 182, 212, 0.1)' }} />)}
+                  {[1, 2, 3].map(i => <div key={i} style={{ flex: 1, borderRadius: '8px', background: 'rgba(6, 182, 212, 0.1)' }} />)}
                 </div>
                 <div style={{ flex: 1.5, borderRadius: '8px', background: 'rgba(241, 245, 249, 1)' }} />
               </div>
             </div>
           </div>
-          
+
           {/* Tablet / POS Screen Mockup (Overlapping Bottom Right) */}
           <div className="glass float-antigravity" style={{
             position: 'absolute', right: '5%', bottom: '-20px',
