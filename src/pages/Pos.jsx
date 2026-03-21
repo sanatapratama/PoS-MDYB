@@ -132,6 +132,8 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
     remaining = Math.max(total - cashNum, 0);
   }
 
+  const [autoPrint, setAutoPrint] = useState(false);
+
   const handlePay = () => {
     if (method === 'cash' && cashNum > 0 && cashNum < total) {
       return alert('Uang tunai kurang dari total tagihan!');
@@ -143,7 +145,7 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
       if (!window.confirm('Belum ada pelanggan dipilih. Yakin catat kasbon ke pelanggan anonim?')) return;
     }
     
-    onConfirm({ method, cashGiven: cashNum, splitQris: remaining });
+    onConfirm({ method, cashGiven: cashNum, splitQris: remaining, autoPrint });
   };
 
   return (
@@ -226,6 +228,13 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
             </div>
           </div>
         )}
+
+        <div style={{ margin: '1rem 0', textAlign: 'left', padding: '0.8rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => setAutoPrint(!autoPrint)}>
+          <input type="checkbox" checked={autoPrint} onChange={() => {}} style={{ width: '20px', height: '20px', cursor: 'pointer' }} />
+          <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Bluetooth size={16} color="#2563eb" /> Cetak Struk Bluetooth Otomatis
+          </span>
+        </div>
 
         <button onClick={handlePay} 
           disabled={method === 'kasbon' && !selectedCustomer}
@@ -563,7 +572,79 @@ export default function Pos() {
     }
   };
 
-  // ── print receipt ──
+  // ── bluetooth print ──
+  const printBluetooth = async (cartToPrint, method, totalToPrint, customer) => {
+    try {
+      const now = new Date();
+      const txId = 'SL' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getTime()).slice(-5);
+      
+      const encoder = new TextEncoder();
+      
+      // ESC/POS Commands
+      const ESC_INIT = '\x1b\x40';
+      const ESC_ALIGN_CENTER = '\x1b\x61\x01';
+      const ESC_ALIGN_LEFT = '\x1b\x61\x00';
+      const ESC_ALIGN_RIGHT = '\x1b\x61\x02';
+      const ESC_BOLD_ON = '\x1b\x45\x01';
+      const ESC_BOLD_OFF = '\x1b\x45\x00';
+      
+      // Receipt Text Construction
+      let teks = ESC_INIT + ESC_ALIGN_CENTER + ESC_BOLD_ON;
+      teks += "SI LENTERA\nBY MDYB STORE\n";
+      teks += ESC_BOLD_OFF;
+      teks += "Solusi Kasir Ringan\n";
+      teks += "================================\n";
+      teks += ESC_ALIGN_LEFT;
+      teks += `Tgl: ${now.toLocaleDateString('id-ID')} - ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB\n`;
+      teks += `ID Trx: ${txId}\n`;
+      if (customer) teks += `Plg: ${customer.name}\n`;
+      teks += "--------------------------------\n";
+      
+      cartToPrint.forEach(item => {
+        const itemLine = `${item.name} x${item.qty}\n`;
+        const priceLine = `${formatIDR(item.price * item.qty)}\n`;
+        teks += itemLine + ESC_ALIGN_RIGHT + priceLine + ESC_ALIGN_LEFT;
+      });
+      
+      teks += "--------------------------------\n";
+      teks += ESC_BOLD_ON + `TOTAL: ${formatIDR(totalToPrint)}\n` + ESC_BOLD_OFF;
+      teks += `Metode: ${method}\n`;
+      teks += "================================\n";
+      teks += ESC_ALIGN_CENTER + "Terima Kasih Telah Belanja!\n\n\n\n\n";
+      
+      const data = encoder.encode(teks);
+      
+      if (!navigator.bluetooth) {
+        alert("Browser tidak mendukung Web Bluetooth. Silakan gunakan Chrome/Edge.");
+        return;
+      }
+      
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
+        optionalServices: ['battery_service']
+      });
+      
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+      const characteristic = await service.getCharacteristic('00002af0-0000-1000-8000-00805f9b34fb');
+      
+      // Send in chunks of 512 bytes
+      const chunkSize = 512;
+      for (let i = 0; i < data.length; i += chunkSize) {
+        const chunk = data.slice(i, i + chunkSize);
+        await characteristic.writeValue(chunk);
+      }
+      
+      console.log('Bluetooth printing done');
+    } catch (error) {
+      console.error('Bluetooth Print Error:', error);
+      if (error.name !== 'NotFoundError') {
+        alert('Gagal cetak bluetooth: ' + error.message);
+      }
+    }
+  };
+
+  // ── print receipt (Virtual / Ctrl+P fallback) ──
   const printReceipt = (payMethod) => {
     const now = new Date();
     const txId = 'SL' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getTime()).slice(-5);
@@ -709,15 +790,22 @@ export default function Pos() {
       <div className="motion-lines" />
 
       {/* ── Modals ── */}
-      {modal === 'payment' && <PaymentModal total={total} selectedCustomer={selectedCustomer} onClose={() => setModal(null)} onConfirm={({ method, cashGiven, splitQris }) => {
+      {modal === 'payment' && <PaymentModal total={total} selectedCustomer={selectedCustomer} onClose={() => setModal(null)} onConfirm={({ method, cashGiven, splitQris, autoPrint }) => {
         setModal(null);
         if (method === 'cash') saveToSupabase('cash', { cash: cashGiven });
         else if (method === 'split') saveToSupabase('split', { cash: cashGiven, qris: splitQris });
         else if (method === 'kasbon') saveToSupabase('kasbon', { name: selectedCustomer?.name, phone: selectedCustomer?.phone });
         else saveToSupabase('qris');
-        printReceipt(method === 'split' ? 'Campuran' : method === 'cash' ? 'Tunai' : method === 'kasbon' ? 'Kasbon' : 'QRIS');
+        
+        const methodLabel = method === 'split' ? 'Campuran' : method === 'cash' ? 'Tunai' : method === 'kasbon' ? 'Kasbon' : 'QRIS';
+        
+        if (autoPrint) {
+          printBluetooth(cart, methodLabel, total, selectedCustomer);
+        } else {
+          printReceipt(methodLabel);
+        }
       }} />}
-      {modal === 'success' && <SuccessModal text={text} total={lastTotal} cart={lastCart} payMethod={lastMethod} customer={selectedCustomer} onClose={() => setModal(null)} />}
+      {modal === 'success' && <SuccessModal text={text} total={lastTotal} cart={lastCart} payMethod={lastMethod} customer={selectedCustomer} onClose={() => setModal(null)} onBluetoothPrint={() => printBluetooth(lastCart, lastMethod, lastTotal, selectedCustomer)} />}
       {modal === 'wa'      && <WAModal text={text} total={Math.round(total)} cart={cart} payMethod="Manual" customer={selectedCustomer} onClose={() => setModal(null)} />}
 
       {/* ── Left Sidebar ── */}
@@ -922,10 +1010,10 @@ export default function Pos() {
               
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem' }}>
                 <button
-                  onClick={() => printReceipt('Manual')}
+                  onClick={() => printBluetooth(cart, 'Manual', total, selectedCustomer)}
                   disabled={cart.length === 0}
                   style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', color: cart.length === 0 ? '#94a3b8' : 'var(--text-primary)', fontWeight: 600, cursor: cart.length === 0 ? 'not-allowed' : 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' }}>
-                  <Printer size={18} color={cart.length === 0 ? '#94a3b8' : 'var(--accent-blue)'} /> Nota Thermal
+                  <Printer size={18} color={cart.length === 0 ? '#94a3b8' : 'var(--accent-blue)'} /> Nota Bluetooth
                 </button>
                 <button
                   onClick={() => setModal('wa')}
