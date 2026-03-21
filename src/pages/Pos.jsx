@@ -511,7 +511,7 @@ export default function Pos() {
       return `
         <div class="item-row">
           <div>
-            <span class="item-name">${item.name} x${item.qty}</span>
+            <span class="item-name">${item.name} x${item.qty} ${item.unit || ''}</span>
             ${noteInput && item === cart[cart.length-1] ? `<br/><span class="item-note">Catatan: ${noteInput}</span>` : ''}
           </div>
           <span class="item-price">${formatIDR(lineTotal)}</span>
@@ -526,8 +526,8 @@ export default function Pos() {
   body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10pt; color: #111; width: ${paperSize === '80mm' ? '80mm' : '58mm'}; background: #fff; padding: 10px 8px 20px; }
 
   /* Header */
-  .logo-wrap { text-align: center; margin-bottom: 0; }
-  .logo-img { width: 140px; height: auto; max-height: 100px; object-fit: contain; }
+  .logo-wrap { text-align: center; margin-bottom: 5px; }
+  .logo-img { width: 180px; height: auto; object-fit: contain; }
   .store-name, .store-sub { display: none !important; }
   .order-type { text-align: center; font-size: 11pt; font-weight: 700; margin: 10px 0 8px; }
 
@@ -603,7 +603,7 @@ export default function Pos() {
   <div class="pay-row"><span>Kembalian</span><span>${formatIDR(0)}</span></div>
 
   <div class="thank-you">Thank you for your order!</div>
-  <div class="footer-brand">★ Si Lentera · Solusi Kasir Ringan ★</div>
+  <div class="footer-brand">★ Si Lentera by Mdyb Store ★</div>
   <div class="dash"></div>
   <div class="paid-box">
     <div class="paid-time">${now.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })} - ${now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })} WIB</div>
@@ -784,6 +784,7 @@ export default function Pos() {
                   <div key={item.id + '_' + index} className="cart-item">
                     <div className="item-details" style={{ flex: 1 }}>
                       <h5>{item.name}</h5>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{item.qty} {item.unit || ''}</span>
                       {editPrices ? (
                         <input type="number" defaultValue={item.price} autoFocus={index === cart.length - 1}
                           style={{ width: '100px', padding: '0.3rem', fontSize: '0.9rem', border: '1px solid var(--accent-blue)', borderRadius: '6px', outline: 'none' }}
