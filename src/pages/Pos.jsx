@@ -12,6 +12,66 @@ import './Pos.css';
 
 // Wholesale Removed
 
+// ──────────────────────── UTILS BT PRINT ────────────────────────
+async function writeBTChunks(characteristic, data) {
+  const CHUNK_SIZE = 20; 
+  for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+    const chunk = data.slice(i, i + CHUNK_SIZE);
+    await characteristic.writeValue(chunk);
+    await new Promise(r => setTimeout(r, 10)); // Jeda 10ms antar chunk
+  }
+}
+
+async function printViaBluetooth(cartData, totalAmount, payMethod, txId, now, activeUserName) {
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb', '0000ff00-0000-1000-8000-00805f9b34fb']
+    });
+
+    const server = await device.gatt.connect();
+    let service;
+    try { service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb'); } 
+    catch(e) { service = await server.getPrimaryService('0000ff00-0000-1000-8000-00805f9b34fb'); }
+
+    const characteristics = await service.getCharacteristics();
+    const characteristic = characteristics.find(c => c.properties.write || c.properties.writeWithoutResponse);
+    if (!characteristic) throw new Error('Karakteristik Write tidak ditemukan.');
+
+    const encoder = new TextEncoder();
+    let r = "\x1b\x40"; // ESC @ (Reset)
+    r += "\x1b\x61\x01"; // Center
+    r += "SI LENTERA\n";
+    r += "by MDYB STORE\n";
+    r += "--------------------------------\n";
+    r += "\x1b\x61\x00"; // Left
+    r += `No: ${txId}\n`;
+    r += `Tgl: ${now.toLocaleDateString('id-ID')} ${now.getHours()}:${now.getMinutes()}\n`;
+    r += `Kasir: ${activeUserName || '-'}\n`;
+    r += "--------------------------------\n";
+    
+    cartData.forEach(item => {
+       const lineTotal = item.price * item.qty;
+       r += `${item.name.substring(0, 20)}\n`;
+       r += `${item.qty} ${item.unit || ''} x ${item.price.toLocaleString()} = ${lineTotal.toLocaleString()}\n`;
+    });
+
+    r += "--------------------------------\n";
+    r += `TOTAL       : Rp ${totalAmount.toLocaleString()}\n`;
+    r += `BAYAR       : ${payMethod}\n`;
+    r += "--------------------------------\n";
+    r += "\x1b\x61\x01"; // Center
+    r += "Terima Kasih!\n";
+    r += "Mdyb Store - Solusi Kasir\n\n\n\n\n";
+
+    await writeBTChunks(characteristic, encoder.encode(r));
+    alert('Struk Bluetooth Berhasil Dicetak!');
+  } catch (error) {
+    console.error('BT Error:', error);
+    alert('Gagal cetak: ' + error.message);
+  }
+}
+
 const DICT = {
   ID: {
     searchPlaceholder: "Cari produk, SKU atau scan barcode...",
@@ -178,7 +238,7 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
   );
 }
 
-function SuccessModal({ text, total, onClose }) {
+function SuccessModal({ text, total, onClose, onBluetoothPrint }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -187,9 +247,15 @@ function SuccessModal({ text, total, onClose }) {
         <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
           Total dibayar: <strong>{formatIDR(total)}</strong>
         </p>
-        <button className="checkout-btn" onClick={onClose} style={{ width: '100%', background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))' }}>
-          Tutup & Lanjut
-        </button>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+          <button className="checkout-btn" onClick={onBluetoothPrint} style={{ width: '100%', background: '#2563eb', color: 'white' }}>
+            <Bluetooth size={18} /> Cetak Struk Bluetooth
+          </button>
+          <button className="checkout-btn" onClick={onClose} style={{ width: '100%', background: '#f1f5f9', color: '#334155', border: '1px solid #e2e8f0' }}>
+            Tutup & Lanjut
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -564,6 +630,8 @@ export default function Pos() {
   <div class="logo-wrap">
     <img src="https://res.cloudinary.com/dsichsufc/image/upload/v1774079104/logo_silentera_l5nepu.png" class="logo-img" alt="Logo" />
   </div>
+  <div class="store-name" style="display:none">Si Lentera</div>
+  <div class="store-sub" style="display:none">by MDYB Store</div>
   <div class="order-type">Kasir / ${payMethod.toUpperCase()}</div>
 
   <div class="dash"></div>
