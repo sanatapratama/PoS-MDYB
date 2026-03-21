@@ -108,26 +108,12 @@ export default function Landing() {
 
       {/* ── NAVBAR ── */}
       <nav className="navbar glass">
-        <div className="nav-brand">
+        <div className="nav-brand" style={{ display: 'flex', alignItems: 'center' }}>
           <img 
             src="https://res.cloudinary.com/dsichsufc/image/upload/v1774077572/Gemini_Generated_Image_8kdszf8kdszf8kds_n5l2gf.png" 
             alt="Si Lentera Logo" 
-            style={{ width: '42px', height: '42px', objectFit: 'contain' }} 
+            style={{ height: '40px', objectFit: 'contain' }} 
           />
-          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-            <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span>Si <span style={{
-                background: 'linear-gradient(45deg, var(--accent-blue), var(--accent-cyan))',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-              }}>Lentera</span></span>
-              <span style={{ fontSize: '0.55rem', padding: '0.2rem 0.5rem', background: 'rgba(37,99,235,0.1)', color: 'var(--accent-blue)', borderRadius: '99px', border: '1px solid rgba(37,99,235,0.2)' }}>
-                {text.badge}
-              </span>
-            </span>
-            <span style={{ fontSize: '0.7rem', fontWeight: 500, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
-              by MDYB Store
-            </span>
-          </div>
         </div>
 
         <div className="nav-links">
@@ -175,19 +161,12 @@ export default function Landing() {
         {/* Badge moved to H1 */}
 
         {/* Title */}
-        <h1 style={{
-          fontFamily: 'var(--font-heading)',
-          fontSize: 'clamp(2.5rem, 6vw, 5rem)',
-          lineHeight: 1.1,
-          fontWeight: 700,
-          color: 'var(--text-primary)',
-          maxWidth: '750px',
-        }}>
-          <span style={{
-            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>{text.title1} </span>
-          {text.title2}
+        <h1 style={{ maxWidth: '750px', margin: '0 auto' }}>
+          <img 
+            src="https://res.cloudinary.com/dsichsufc/image/upload/v1774077572/Gemini_Generated_Image_8kdszf8kdszf8kds_n5l2gf.png" 
+            alt="Si Lentera Logo" 
+            style={{ width: '100%', maxWidth: '350px', objectFit: 'contain' }} 
+          />
         </h1>
 
         {/* Subtitle */}
