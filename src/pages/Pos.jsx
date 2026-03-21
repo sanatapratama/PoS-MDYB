@@ -596,7 +596,18 @@ export default function Pos() {
 
       {/* ── Left Sidebar ── */}
       <aside className="pos-sidebar-left glass">
-        <div className="nav-icon" onClick={() => navigate('/')} title="Home"><Home size={26}/><span className="nav-label">HOME</span></div>
+        <div 
+          className="nav-icon" 
+          onClick={() => {
+            if (window.confirm('Apakah Anda yakin ingin kembali ke menu utama (Home)? \n⚠ Perhatian: Data pesanan kasir yang belum disimpan ke database mungkin akan dikosongkan.')) {
+              navigate('/');
+            }
+          }} 
+          title="Home"
+        >
+          <Home size={26}/>
+          <span className="nav-label">HOME</span>
+        </div>
         <div style={{ marginTop: '1rem' }}/>
         <div className={`nav-icon ${activeMenu === 'pos' ? 'active' : ''}`} onClick={() => setActiveMenu('pos')}><LayoutGrid size={26}/><span className="nav-label">POS</span></div>
         <div className={`nav-icon ${activeMenu === 'history' ? 'active' : ''}`} onClick={() => setActiveMenu('history')}><Clock size={26}/><span className="nav-label">HISTORY</span></div>
