@@ -6,7 +6,7 @@ import {
   ShoppingCart, Plus, Minus, CreditCard, ChevronRight, 
   Home, Trash2, Percent, FileText, Camera, PauseCircle,
   FileBarChart, Fingerprint, Globe, Unlock, QrCode,
-  CheckCircle, MessageCircle, BookOpen, Package, Printer, Tag, StickyNote
+  CheckCircle, MessageCircle, BookOpen, Package, Printer, Tag, StickyNote, Bluetooth
 } from 'lucide-react';
 import './Pos.css';
 
