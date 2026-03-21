@@ -116,12 +116,7 @@ export default function Landing() {
           />
         </div>
 
-        <div className="nav-links">
-          <a href="#features" className="nav-item">{text.nav.features}</a>
-          <a href="#inventory" className="nav-item">{text.nav.inventory}</a>
-          <a href="#reports" className="nav-item">{text.nav.reports}</a>
-          <a href="#pricing" className="nav-item">{text.nav.pricing}</a>
-        </div>
+
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {/* Language Toggle */}
@@ -140,7 +135,7 @@ export default function Landing() {
             🌐 {lang}
           </button>
 
-          <button className="btn-primary" onClick={() => navigate('/pos')}>
+          <button className="btn-primary" onClick={() => navigate('/admin')}>
             {text.cta}
           </button>
         </div>
@@ -177,10 +172,10 @@ export default function Landing() {
           />
         </h1>
 
-        {/* CTA Buttons */}
+        {/* CTA Buttons - Simplified to one main entry */}
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
           <button className="btn-primary float-element" onClick={() => navigate('/admin')}
-            style={{ padding: '0.9rem 2.5rem', fontSize: '1.05rem', boxShadow: '0 15px 30px -10px rgba(37,99,235,0.4)', letterSpacing: '0.02em', fontWeight: 'bold' }}>
+            style={{ padding: '1rem 3rem', fontSize: '1.2rem', boxShadow: '0 15px 30px -10px rgba(37,99,235,0.4)', letterSpacing: '0.02em', fontWeight: 'bold', borderRadius: '50px' }}>
             {text.cta} →
           </button>
         </div>
@@ -298,11 +293,7 @@ export default function Landing() {
           ))}
         </div>
 
-        {/* Final CTA */}
-        <button className="btn-primary" onClick={() => navigate('/admin2026')}
-          style={{ marginTop: '1rem', padding: '1rem 3rem', fontSize: '1.1rem' }}>
-          {text.cta} →
-        </button>
+        {/* Final CTA removed for simplicity as per user request */}
       </section>
     </div>
   );
