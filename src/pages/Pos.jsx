@@ -1034,6 +1034,10 @@ export default function Pos() {
                           <td style={{ padding: '0.4rem', textAlign: 'center' }}>
                             <button
                               onClick={async () => {
+                                if (typeof p.id === 'number') {
+                                  alert('❌ Ini adalah produk contoh bawaan (Mock Data). Anda hanya dapat menghapus produk yang Anda buat sendiri di Supabase.');
+                                  return;
+                                }
                                 if (!window.confirm(`Hapus produk "${p.name}" secara permanen?`)) return;
                                 const { error } = await supabase.from('products').delete().eq('id', p.id);
                                 if (error) alert('Gagal hapus: ' + error.message);
