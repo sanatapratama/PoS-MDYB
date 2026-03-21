@@ -10,22 +10,7 @@ import {
 } from 'lucide-react';
 import './Pos.css';
 
-const WHOLESALE_RULES = {
-  3: 0.05,   // 5% off at qty 3+
-  6: 0.10,   // 10% off at qty 6+
-  12: 0.15,  // 15% off at qty 12+
-};
-
-const MOCK_PRODUCTS = [
-  { id: 1, name: 'Espresso Core',       category: 'Drinks', cost_price: 15000, price: 25000, stock: 45, unit: 'Cup' },
-  { id: 2, name: 'Cyber Matcha Latte',  category: 'Drinks', cost_price: 20000, price: 35000, stock: 12, unit: 'Cup' },
-  { id: 3, name: 'Neon Glitch Burger',  category: 'Food',   cost_price: 25000, price: 45000, stock: 5,  unit: 'Pcs' },
-  { id: 4, name: 'Quantum Fries',       category: 'Snacks', cost_price: 12000, price: 20000, stock: 80, unit: 'Pack' },
-  { id: 5, name: 'Zero-G Water',        category: 'Drinks', cost_price: 5000,  price: 10000, stock: 120, unit: 'Botol' },
-  { id: 6, name: 'Holo-Donut',          category: 'Snacks', cost_price: 8000,  price: 15000, stock: 2,  unit: 'Pcs' },
-  { id: 7, name: 'Void Coffee',         category: 'Drinks', cost_price: 15000, price: 28000, stock: 34, unit: 'Cup' },
-  { id: 8, name: 'Synthwave Pasta',     category: 'Food',   cost_price: 30000, price: 55000, stock: 15, unit: 'Porsi' },
-];
+// Wholesale Removed
 
 const DICT = {
   ID: {
@@ -33,7 +18,7 @@ const DICT = {
     online: "Supabase Synced", offline: "Tersimpan Lokal (Offline)",
     admin: "Kasir Shift A", all: "Semua", currentOrder: "Pesanan Saat Ini",
     emptyCart: "Keranjang Kosong", discount: "Diskon", note: "Catatan",
-    subtotal: "Subtotal", tax: "Pajak (11%)", total: "Total", charge: "Bayar Tunai",
+    subtotal: "Subtotal", tax: "Pajak (0%)", total: "Total", charge: "Bayar Tunai",
     customerSelect: "Pilih Pelanggan / Loyalitas", stock: "Sisa",
     holdOrder: "Tahan Pesanan", clearCart: "Hapus Semua",
     openDrawer: "Buka Laci", shiftReport: "Laporan Shift",
@@ -50,7 +35,7 @@ const DICT = {
     online: "Supabase Synced", offline: "Saved Locally (Offline)",
     admin: "Cashier Shift A", all: "All", currentOrder: "Current Order",
     emptyCart: "Cart is empty", discount: "Discount", note: "Add Note",
-    subtotal: "Subtotal", tax: "Tax (11%)", total: "Total", charge: "Pay Cash",
+    subtotal: "Subtotal", tax: "Tax (0%)", total: "Total", charge: "Pay Cash",
     customerSelect: "Select Customer / Loyalty", stock: "Left",
     holdOrder: "Hold Order", clearCart: "Clear Cart",
     openDrawer: "Open Drawer", shiftReport: "Shift Report",
@@ -64,96 +49,130 @@ const DICT = {
   }
 };
 
-function getWholesaleDiscount(qty) {
-  let bestDiscount = 0;
-  for (const [threshold, disc] of Object.entries(WHOLESALE_RULES)) {
-    if (qty >= Number(threshold)) bestDiscount = disc;
-  }
-  return bestDiscount;
-}
-
 function formatIDR(num) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
 }
 
 // ──────────────────────── MODALS ────────────────────────
 
-function QRISModal({ total, text, onClose, onConfirm }) {
+function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
+  const [method, setMethod] = useState('cash'); 
+  const [cashGiven, setCashGiven] = useState('');
+  
+  const cashNum = parseFloat(cashGiven.replace(/\D/g, '')) || 0;
+  
+  const denominations = [10000, 20000, 50000, 100000, 'Pas'];
+
+  let change = 0;
+  let remaining = 0;
+  if (method === 'cash') {
+    change = Math.max(cashNum - total, 0);
+    remaining = Math.max(total - cashNum, 0);
+  } else if (method === 'split') {
+    remaining = Math.max(total - cashNum, 0);
+  }
+
+  const handlePay = () => {
+    if (method === 'cash' && cashNum > 0 && cashNum < total) {
+      return alert('Uang tunai kurang dari total tagihan!');
+    }
+    if (method === 'split' && cashNum >= total) {
+      return alert('Bayar tunai melebihi/sama dengan tagihan. Gunakan metode Tunai.');
+    }
+    if (method === 'kasbon' && !selectedCustomer) {
+      if (!window.confirm('Belum ada pelanggan dipilih. Yakin catat kasbon ke pelanggan anonim?')) return;
+    }
+    
+    onConfirm({ method, cashGiven: cashNum, splitQris: remaining });
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <QrCode size={32} color="var(--accent-blue)" />
-        <h3>{text.qrisTitle}</h3>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 0 }}>Total pembayaran:</p>
-        <p style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--accent-blue)' }}>{formatIDR(total)}</p>
-        <div className="qris-code" />
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-          Arahkan kamera HP ke QR di atas. Pembayaran terdeteksi otomatis.
-        </p>
-        <button className="checkout-btn qris" style={{ width: '100%', marginTop: '1rem', padding: '0.8rem' }} onClick={onConfirm}>
-          <CheckCircle size={20} /> Selesai Dibayar
-        </button>
-        <button className="modal-close" onClick={onClose}>{text.closeBtn}</button>
-      </div>
-    </div>
-  );
-}
+      <div className="modal-content" style={{ width: '450px' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h3 style={{ margin: 0 }}>Proses Bayar</h3>
+          <span style={{ background: 'var(--accent-blue)', color: 'white', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800 }}>Total: {formatIDR(total)}</span>
+        </div>
 
-function SplitModal({ total, text, onClose, onConfirm }) {
-  const [cashInput, setCashInput] = useState('');
-  const cashNum = parseFloat(cashInput.replace(/\D/g, '')) || 0;
-  const remaining = Math.max(total - cashNum, 0);
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', marginBottom: '1.2rem' }}>
+          {['cash', 'qris', 'split', 'kasbon'].map(m => (
+            <button key={m} onClick={() => setMethod(m)} 
+              style={{
+                padding: '0.8rem 0.4rem', borderRadius: '12px', border: method === m ? '2px solid var(--accent-blue)' : '1px solid #e2e8f0',
+                background: method === m ? '#eff6ff' : 'white', color: method === m ? 'var(--accent-blue)' : 'var(--text-secondary)',
+                fontWeight: 700, cursor: 'pointer', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px'
+              }}>
+              {m === 'cash' && <CreditCard size={18} />}
+              {m === 'qris' && <QrCode size={18} />}
+              {m === 'split' && <LayoutGrid size={18} />}
+              {m === 'kasbon' && <BookOpen size={18} />}
+              {m === 'split' ? 'Mix' : m === 'cash' ? 'Tunai' : m === 'qris' ? 'QRIS' : 'Hutang'}
+            </button>
+          ))}
+        </div>
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <CreditCard size={32} color="var(--accent-blue)" />
-        <h3>{text.splitTitle}</h3>
-        <p style={{ color: 'var(--text-secondary)' }}>Total: <strong>{formatIDR(total)}</strong></p>
-        <div className="split-inputs">
-          <label>{text.cashInput}</label>
-          <input
-            type="number"
-            placeholder="0"
-            value={cashInput}
-            onChange={e => setCashInput(e.target.value)}
-            style={{ borderColor: cashNum > total ? '#ff4757' : '#ddd' }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'rgba(58,123,213,0.05)', borderRadius: '10px' }}>
-            <span>{text.remaining}</span>
-            <strong style={{ color: 'var(--accent-blue)' }}>{formatIDR(remaining)}</strong>
+        {(method === 'cash' || method === 'split') && (
+          <div className="split-inputs" style={{ marginBottom: '1.2rem', textAlign: 'left', background: '#f8fafc', padding: '1rem', borderRadius: '16px' }}>
+            <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', display: 'block' }}>
+              {method === 'cash' ? 'Uang Diterima' : 'Tunai Dimuka'}
+            </label>
+            <input type="number" autoFocus placeholder="0" value={cashGiven} onChange={e => setCashGiven(e.target.value)}
+              style={{ width: '100%', padding: '0.8rem', fontSize: '1.5rem', fontWeight: 800, borderRadius: '12px', border: '2px solid #cbd5e1', outline: 'none', color: 'var(--accent-blue)' }} />
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem', marginTop: '0.8rem' }}>
+              {denominations.map(d => (
+                <button key={d} onClick={() => setCashGiven(d === 'Pas' ? String(total) : String(d))}
+                  style={{ padding: '0.5rem 0.2rem', borderRadius: '8px', border: '1px solid #cbd5e1', background: 'white', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer' }}>
+                  {d === 'Pas' ? 'PAS' : (d/1000) + 'k'}
+                </button>
+              ))}
+            </div>
+
+            {method === 'cash' && cashGiven && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: remaining > 0 ? '#fff1f2' : '#f0fdf4', borderRadius: '12px', marginTop: '1rem', border: remaining > 0 ? '1px solid #fecaca' : '1px solid #bbf7d0' }}>
+                <span style={{ fontWeight: 600, color: remaining > 0 ? '#e11d48' : '#16a34a' }}>{remaining > 0 ? 'Kurang' : 'Kembali'}</span>
+                <span style={{ fontWeight: 800, fontSize: '1.1rem', color: remaining > 0 ? '#e11d48' : '#16a34a' }}>{formatIDR(remaining > 0 ? remaining : change)}</span>
+              </div>
+            )}
+            
+            {method === 'split' && cashGiven && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', background: '#f0f9ff', borderRadius: '12px', marginTop: '1rem', border: '1px solid #bae6fd' }}>
+                <span style={{ fontWeight: 600, color: '#0284c7' }}>Sisa QRIS</span>
+                <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#0284c7' }}>{formatIDR(remaining)}</span>
+              </div>
+            )}
           </div>
-        </div>
-        <button className="checkout-btn qris" style={{ width: '100%', marginTop: 0 }} onClick={() => onConfirm(cashNum, remaining)}>
-          <QrCode size={20} /> Lanjut ke QRIS {formatIDR(remaining)}
-        </button>
-        <button className="modal-close" onClick={onClose}>{text.closeBtn}</button>
-      </div>
-    </div>
-  );
-}
+        )}
 
-function KasbonModal({ text, onClose, onConfirm }) {
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+        {method === 'qris' && (
+          <div style={{ background: '#fef2f2', padding: '1.5rem', borderRadius: '16px', marginBottom: '1.2rem', border: '1px solid #fee2e2' }}>
+            <QrCode size={48} color="#e11d48" style={{ margin: '0 auto 0.5rem', display: 'block' }}/>
+            <p style={{ fontSize: '0.85rem', color: '#991b1b', fontWeight: 600 }}>Bayar penuh {formatIDR(total)} dengan QRIS.</p>
+          </div>
+        )}
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <BookOpen size={32} color="#ff9f43" />
-        <h3 style={{ color: '#ff9f43' }}>{text.kasbonTitle}</h3>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>Transaksi akan dicatat sebagai piutang.</p>
-        <div className="split-inputs">
-          <label>Nama Pelanggan</label>
-          <input placeholder="Budi Santoso" value={name} onChange={e => setName(e.target.value)} />
-          <label>Nomor HP</label>
-          <input placeholder="08xxxxxxxxxx" value={phone} onChange={e => setPhone(e.target.value)} />
-        </div>
-        <button className="checkout-btn" style={{ width: '100%', background: 'linear-gradient(135deg,#ff9f43,#feca57)' }}
-          onClick={() => onConfirm(name, phone)}>
-          <BookOpen size={20} /> Simpan Kasbon
+        {method === 'kasbon' && (
+          <div style={{ background: '#fffbeb', padding: '1.2rem', borderRadius: '16px', marginBottom: '1.2rem', border: '1px solid #fde68a', textAlign: 'left' }}>
+            <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
+              <BookOpen size={24} color="#d97706" />
+              <div>
+                <h4 style={{ color: '#d97706', margin: 0, fontSize: '0.9rem' }}>Mode Kasbon</h4>
+                {selectedCustomer ? (
+                  <p style={{ fontSize: '0.8rem', margin: '2px 0 0' }}>Pelanggan: <strong>{selectedCustomer.name}</strong></p>
+                ) : (
+                  <p style={{ fontSize: '0.8rem', margin: '2px 0 0', color: '#dc2626' }}>⚠ Pilih pelanggan dulu!</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        <button onClick={handlePay} 
+          disabled={method === 'kasbon' && !selectedCustomer}
+          style={{ width: '100%', padding: '1.2rem', borderRadius: '14px', background: (method === 'kasbon' && !selectedCustomer) ? '#cbd5e1' : 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))', color: 'white', fontWeight: 800, fontSize: '1rem', border: 'none', cursor: (method === 'kasbon' && !selectedCustomer) ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(58, 123, 213, 0.2)' }}>
+          {method === 'qris' ? 'KONFIRMASI BAYAR QRIS' : method === 'kasbon' ? 'CATAT SEBAGAI HUTANG' : 'SELESAIKAN TRANSAKSI'}
         </button>
-        <button className="modal-close" onClick={onClose}>{text.closeBtn}</button>
+        <button className="modal-close" onClick={onClose} style={{ marginTop: '0.8rem', opacity: 0.6 }}>Batal & Kembali</button>
       </div>
     </div>
   );
@@ -349,15 +368,15 @@ export default function Pos() {
   // Cart extra states
   const [discountInput, setDiscountInput] = useState('');
   const [noteInput, setNoteInput] = useState('');
-  const [showDiscountBox, setShowDiscountBox] = useState(false);
   const [showNoteBox, setShowNoteBox] = useState(false);
+  const [editPrices, setEditPrices] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [showCustomerPicker, setShowCustomerPicker] = useState(false);
 
   // Supabase Data
   const [dbCategories, setDbCategories] = useState([]);
   const [dbCashiers, setDbCashiers] = useState([]);
-  const [dbProducts, setDbProducts] = useState(MOCK_PRODUCTS);
+  const [dbProducts, setDbProducts] = useState([]);
 
   useEffect(() => {
     async function fetchSupabaseData() {
@@ -410,11 +429,9 @@ export default function Pos() {
     setCart(prev => {
       const existing = prev.find(i => i.id === product.id);
       if (existing) {
-        const newQty = existing.qty + 1;
-        const disc = getWholesaleDiscount(newQty);
-        return prev.map(i => i.id === product.id ? { ...i, qty: newQty, discount: disc } : i);
+        return prev.map(i => i.id === product.id ? { ...i, qty: existing.qty + 1 } : i);
       }
-      return [...prev, { ...product, qty: 1, discount: 0 }];
+      return [...prev, { ...product, qty: 1 }];
     });
   };
 
@@ -424,17 +441,12 @@ export default function Pos() {
       if (item.id !== id) return [item];
       const newQty = item.qty + delta;
       if (newQty <= 0) return [];
-      const disc = getWholesaleDiscount(newQty);
-      return [{ ...item, qty: newQty, discount: disc }];
+      return [{ ...item, qty: newQty }];
     }));
   };
 
-  const subtotal = cart.reduce((sum, item) => {
-    const discPrice = item.price * (1 - item.discount);
-    return sum + discPrice * item.qty;
-  }, 0);
-  const tax = subtotal * 0.11;
-  const raw = subtotal + tax;
+  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const raw = subtotal;
   const rounded = Math.ceil(raw / 500) * 500;
   const donationAmt = donation ? rounded - raw : 0;
   const total = donation ? rounded : raw;
@@ -455,7 +467,7 @@ export default function Pos() {
     const txData = {
       items: cart,
       subtotal,
-      tax,
+      tax: 0,
       total: Math.round(total),
       payment_method: method,
       cash_amount: extra.cash || (method === 'cash' ? Math.round(total) : 0),
@@ -490,18 +502,16 @@ export default function Pos() {
     const now = new Date();
     const txId = 'SL' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getTime()).slice(-5);
     const manualDisc = Number(discountInput) || 0;
-    const rawSub = cart.reduce((s, i) => s + i.price * (1 - (i.discount || 0)) * i.qty, 0);
-    const taxAmt = Math.round(rawSub * 0.11);
-    const grandTotal = rawSub - manualDisc + taxAmt;
+    const rawSub = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+    const taxAmt = 0;
+    const grandTotal = rawSub + taxAmt;
 
     const itemRows = cart.map(item => {
-      const discPrice = item.price * (1 - (item.discount || 0));
-      const lineTotal = discPrice * item.qty;
+      const lineTotal = item.price * item.qty;
       return `
         <div class="item-row">
           <div>
             <span class="item-name">${item.name} x${item.qty}</span>
-            ${item.discount > 0 ? `<br/><span class="item-note">Grosir -${(item.discount*100).toFixed(0)}%</span>` : ''}
             ${noteInput && item === cart[cart.length-1] ? `<br/><span class="item-note">Catatan: ${noteInput}</span>` : ''}
           </div>
           <span class="item-price">${formatIDR(lineTotal)}</span>
@@ -588,8 +598,6 @@ export default function Pos() {
   <div class="dash"></div>
   <div class="section-title">Payment Details</div>
   <div class="pay-row"><span>Subtotal</span><span>${formatIDR(rawSub)}</span></div>
-  ${manualDisc > 0 ? `<div class="pay-row discount"><span>Discount</span><span>-${formatIDR(manualDisc)}</span></div>` : ''}
-  <div class="pay-row"><span>Pajak (11%)</span><span>${formatIDR(taxAmt)}</span></div>
   <div class="solid"></div>
   <div class="pay-row total"><span>Total</span><span>${formatIDR(grandTotal)}</span></div>
 
@@ -639,11 +647,14 @@ export default function Pos() {
       <div className="motion-lines" />
 
       {/* ── Modals ── */}
-      {modal === 'qris'   && <QRISModal   total={total}  text={text} onClose={() => setModal(null)} onConfirm={() => { setModal(null); saveToSupabase('qris'); printReceipt('QRIS'); }} />}
-      {modal === 'split'  && <SplitModal  total={total}  text={text} onClose={() => setModal(null)}
-        onConfirm={(cash, rest) => { setModal(null); saveToSupabase('split', { cash, qris: rest }); }} />}
-      {modal === 'kasbon' && <KasbonModal text={text} onClose={() => setModal(null)}
-        onConfirm={(name, phone) => { setModal(null); saveToSupabase('kasbon', { name, phone }); }} />}
+      {modal === 'payment' && <PaymentModal total={total} selectedCustomer={selectedCustomer} onClose={() => setModal(null)} onConfirm={({ method, cashGiven, splitQris }) => {
+        setModal(null);
+        if (method === 'cash') saveToSupabase('cash', { cash: cashGiven });
+        else if (method === 'split') saveToSupabase('split', { cash: cashGiven, qris: splitQris });
+        else if (method === 'kasbon') saveToSupabase('kasbon', { name: selectedCustomer?.name, phone: selectedCustomer?.phone });
+        else saveToSupabase('qris');
+        printReceipt(method === 'split' ? 'Campuran' : method === 'cash' ? 'Tunai' : method === 'kasbon' ? 'Kasbon' : 'QRIS');
+      }} />}
       {modal === 'success' && <SuccessModal text={text} total={lastTotal} cart={lastCart} payMethod={lastMethod} customer={selectedCustomer} onClose={() => setModal(null)} />}
       {modal === 'wa'      && <WAModal text={text} total={Math.round(total)} cart={cart} payMethod="Manual" customer={selectedCustomer} onClose={() => setModal(null)} />}
 
@@ -774,17 +785,21 @@ export default function Pos() {
                   <ShoppingCart size={48} style={{ margin: '0 auto 1rem' }} />
                   <p>{text.emptyCart}</p>
                 </div>
-              ) : cart.map(item => {
-                const discPrice = item.price * (1 - item.discount);
+              ) : cart.map((item, index) => {
                 return (
-                  <div key={item.id} className="cart-item">
-                    <div className="item-details">
+                  <div key={item.id + '_' + index} className="cart-item">
+                    <div className="item-details" style={{ flex: 1 }}>
                       <h5>{item.name}</h5>
-                      <p>{formatIDR(discPrice)}</p>
-                      {item.discount > 0 && (
-                        <span className="wholesale-note">
-                          🏷 Grosir -{(item.discount * 100).toFixed(0)}% (beli {item.qty})
-                        </span>
+                      {editPrices ? (
+                        <input type="number" defaultValue={item.price} autoFocus={index === cart.length - 1}
+                          style={{ width: '100px', padding: '0.3rem', fontSize: '0.9rem', border: '1px solid var(--accent-blue)', borderRadius: '6px', outline: 'none' }}
+                          onBlur={e => {
+                            const v = Number(e.target.value);
+                            if (v >= 0) setCart(prev => prev.map(i => i.id === item.id ? { ...i, price: v } : i));
+                          }}
+                        />
+                      ) : (
+                        <p>{formatIDR(item.price)}</p>
                       )}
                     </div>
                     <div className="qty-control">
@@ -798,23 +813,14 @@ export default function Pos() {
             </div>
 
             {/* Quick Tools */}
-            <div className="cart-tools">
-              <button className="tool-btn" onClick={() => { setShowDiscountBox(d => !d); setShowNoteBox(false); }}>
-                <Percent size={18} /> {text.discount}
+            <div className="cart-tools" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <button className="tool-btn" onClick={() => { setShowNoteBox(false); setEditPrices(p => !p); }} style={{ width: '100%', background: editPrices ? '#eff6ff' : 'transparent', border: editPrices ? '1px solid var(--accent-blue)' : '1px dashed #cbd5e1' }}>
+                <Tag size={18} color={editPrices ? "var(--accent-blue)" : "inherit"} /> {editPrices ? 'Selesai Edit' : 'Edit Harga'}
               </button>
-              <button className="tool-btn" onClick={() => { setShowNoteBox(n => !n); setShowDiscountBox(false); }}>
+              <button className="tool-btn" onClick={() => { setEditPrices(false); setShowNoteBox(n => !n); }} style={{ width: '100%', border: '1px dashed #cbd5e1' }}>
                 <StickyNote size={18} /> {text.note}
               </button>
             </div>
-            {showDiscountBox && (
-              <div style={{ padding: '0 1rem 0.5rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <Tag size={16} color="var(--accent-blue)" />
-                <input type="number" placeholder="Nominal diskon (Rp)" value={discountInput}
-                  onChange={e => setDiscountInput(e.target.value)}
-                  style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', outline: 'none' }} />
-                <button onClick={() => setShowDiscountBox(false)} style={{ background: 'var(--accent-blue)', color: '#fff', border: 'none', borderRadius: '8px', padding: '0.5rem 1rem', cursor: 'pointer', fontWeight: 600 }}>OK</button>
-              </div>
-            )}
             {showNoteBox && (
               <div style={{ padding: '0 1rem 0.5rem' }}>
                 <textarea placeholder="Catatan pesanan..." value={noteInput} onChange={e => setNoteInput(e.target.value)}
@@ -825,7 +831,6 @@ export default function Pos() {
             {/* Summary */}
             <div className="cart-summary">
               <div className="summary-row"><span>{text.subtotal}</span><span>{formatIDR(subtotal)}</span></div>
-              <div className="summary-row"><span>{text.tax}</span><span>{formatIDR(tax)}</span></div>
               {donation > 0 && (
                 <div className="summary-row donation">
                   <span>💚 {text.donation}</span><span>+{formatIDR(donationAmt)}</span>
@@ -841,23 +846,28 @@ export default function Pos() {
 
               <div className="summary-row total"><span>{text.total}</span><span>{formatIDR(total)}</span></div>
 
-              <div className="checkout-grid">
-                <button className="checkout-btn" onClick={() => { saveToSupabase('cash'); printReceipt('Tunai'); }} disabled={cart.length === 0}>
-                  <CreditCard size={18} /> {text.charge}
+              <div style={{ marginTop: '0.5rem' }}>
+                <button
+                  className="checkout-btn"
+                  onClick={() => setModal('payment')}
+                  disabled={cart.length === 0}
+                  style={{ width: '100%', padding: '1.2rem', fontSize: '1.2rem', background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                >
+                  💳 BAYAR TEPAT / UBAH NOMINAL
                 </button>
-                <button className="checkout-btn qris" onClick={() => setModal('qris')} disabled={cart.length === 0}>
-                  <QrCode size={18} /> {text.qrisBtn}
+              </div>
+              
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.7rem' }}>
+                <button
+                  onClick={() => printReceipt('Manual')}
+                  disabled={cart.length === 0}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', color: cart.length === 0 ? '#94a3b8' : 'var(--text-primary)', fontWeight: 600, cursor: cart.length === 0 ? 'not-allowed' : 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' }}>
+                  <Printer size={18} color={cart.length === 0 ? '#94a3b8' : 'var(--accent-blue)'} /> Nota Thermal
                 </button>
-                <button className="checkout-btn split" onClick={() => setModal('split')} disabled={cart.length === 0} style={{ gridColumn: 'span 1' }}>
-                  <CreditCard size={18} /> {text.splitBtn}
-                </button>
-                <button className="checkout-btn kasbon" onClick={() => setModal('kasbon')} disabled={cart.length === 0} style={{ gridColumn: 'span 1' }}>
-                  <BookOpen size={18} /> {text.kasbonBtn}
-                </button>
-                <button className="checkout-btn" onClick={() => printReceipt('Manual')} disabled={cart.length === 0} style={{ background: '#f8fafc', color: cart.length === 0 ? '#94a3b8' : '#0f172a', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
-                  <Printer size={18} /> Nota Thermal
-                </button>
-                <button className="checkout-btn" onClick={() => setModal('wa')} disabled={cart.length === 0} style={{ background: '#ecfdf5', color: cart.length === 0 ? '#94a3b8' : '#059669', border: '1px solid #a7f3d0', boxShadow: 'none' }}>
+                <button
+                  onClick={() => setModal('wa')}
+                  disabled={cart.length === 0}
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', background: '#ecfdf5', border: '1px solid #a7f3d0', color: cart.length === 0 ? '#94a3b8' : '#059669', fontWeight: 600, cursor: cart.length === 0 ? 'not-allowed' : 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' }}>
                   <MessageCircle size={18} /> Kirim ke WA
                 </button>
               </div>

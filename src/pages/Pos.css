@@ -503,13 +503,6 @@
   color: white;
 }
 
-.checkout-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
 .checkout-btn {
   background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
   color: white;
@@ -527,23 +520,7 @@
   gap: 0.5rem;
 }
 
-.checkout-btn.qris {
-  background: linear-gradient(135deg, #ff4757, #ff6b81);
-  box-shadow: 0 4px 15px rgba(255, 71, 87, 0.2);
-}
-
-.checkout-btn.split {
-  grid-column: span 2;
-  background: linear-gradient(135deg, #2f3542, #57606f);
-}
-
-.checkout-btn.kasbon {
-  grid-column: span 2;
-  background: transparent;
-  color: #57606f;
-  border: 1px dashed #57606f;
-  box-shadow: none;
-}
+/* Old payment methods grid removed */
 
 .checkout-btn:hover {
   transform: translateY(-2px);
