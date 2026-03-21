@@ -161,14 +161,20 @@ export default function Landing() {
         {/* Badge moved to H1 */}
 
         {/* Title */}
-        <h1 style={{ maxWidth: '750px', margin: '0 auto', marginBottom: '2.5rem' }}>
-          <div style={{ background: 'rgba(255,255,255,0.7)', backdropFilter: 'blur(20px)', padding: '2.5rem 4rem', borderRadius: '40px', boxShadow: '0 20px 50px rgba(14, 165, 233, 0.25)', border: '2px solid rgba(255, 255, 255, 0.9)', display: 'inline-block' }}>
-            <img 
-              src="https://res.cloudinary.com/dsichsufc/image/upload/e_make_transparent:20/v1774079104/logo_silentera_l5nepu.png" 
-              alt="Si Lentera Logo" 
-              style={{ width: '100%', maxWidth: '420px', objectFit: 'contain', display: 'block' }} 
-            />
-          </div>
+        <h1 style={{ maxWidth: '850px', margin: '0 auto', marginBottom: '2.5rem' }}>
+          <img 
+            src="https://res.cloudinary.com/dsichsufc/image/upload/e_make_transparent:20/v1774079104/logo_silentera_l5nepu.png" 
+            alt="Si Lentera Logo" 
+            style={{ 
+              width: '100%', 
+              maxWidth: '550px', 
+              objectFit: 'contain', 
+              display: 'block', 
+              margin: '0 auto', 
+              filter: 'drop-shadow(0 25px 45px rgba(6, 182, 212, 0.4)) drop-shadow(0 5px 15px rgba(0, 0, 0, 0.05))',
+              transform: 'scale(1.02)'
+            }} 
+          />
         </h1>
 
         {/* CTA Buttons */}
