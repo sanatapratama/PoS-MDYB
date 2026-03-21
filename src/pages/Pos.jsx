@@ -572,8 +572,13 @@ export default function Pos() {
     }
   };
 
-  // ── bluetooth print ──
+  // ── bluetooth print (Direct ESC/POS) ──
   const printBluetooth = async (cartToPrint, method, totalToPrint, customer) => {
+    if (!cartToPrint || cartToPrint.length === 0) {
+      console.warn('No items to print');
+      return;
+    }
+
     try {
       const now = new Date();
       const txId = 'SL' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getTime()).slice(-5);
@@ -588,6 +593,16 @@ export default function Pos() {
       const ESC_BOLD_ON = '\x1b\x45\x01';
       const ESC_BOLD_OFF = '\x1b\x45\x00';
       
+      // Helper for 32-char line (Standard 58mm)
+      const pad = (left, right) => {
+        const totalLen = 32;
+        const leftStr = String(left);
+        const rightStr = String(right);
+        const PadLen = totalLen - leftStr.length - rightStr.length;
+        if (PadLen > 0) return leftStr + ' '.repeat(PadLen) + rightStr;
+        return leftStr + '\n' + ' '.repeat(totalLen - rightStr.length) + rightStr;
+      };
+
       // Receipt Text Construction
       let teks = ESC_INIT + ESC_ALIGN_CENTER + ESC_BOLD_ON;
       teks += "SI LENTERA\nBY MDYB STORE\n";
@@ -595,19 +610,21 @@ export default function Pos() {
       teks += "Solusi Kasir Ringan\n";
       teks += "================================\n";
       teks += ESC_ALIGN_LEFT;
-      teks += `Tgl: ${now.toLocaleDateString('id-ID')} - ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB\n`;
+      teks += pad("Tgl:", now.toLocaleDateString('id-ID')) + "\n";
+      teks += pad("Jam:", now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB") + "\n";
       teks += `ID Trx: ${txId}\n`;
       if (customer) teks += `Plg: ${customer.name}\n`;
       teks += "--------------------------------\n";
       
       cartToPrint.forEach(item => {
-        const itemLine = `${item.name} x${item.qty}\n`;
-        const priceLine = `${formatIDR(item.price * item.qty)}\n`;
-        teks += itemLine + ESC_ALIGN_RIGHT + priceLine + ESC_ALIGN_LEFT;
+        teks += `${item.name} x${item.qty}\n`;
+        const priceStr = formatIDR(item.price * item.qty).replace('Rp', 'Rp ').trim();
+        teks += ESC_ALIGN_RIGHT + priceStr + "\n" + ESC_ALIGN_LEFT;
       });
       
       teks += "--------------------------------\n";
-      teks += ESC_BOLD_ON + `TOTAL: ${formatIDR(totalToPrint)}\n` + ESC_BOLD_OFF;
+      const totalStr = formatIDR(totalToPrint).replace('Rp', 'Rp ').trim();
+      teks += ESC_BOLD_ON + pad("TOTAL:", totalStr) + "\n" + ESC_BOLD_OFF;
       teks += `Metode: ${method}\n`;
       teks += "================================\n";
       teks += ESC_ALIGN_CENTER + "Terima Kasih Telah Belanja!\n\n\n\n\n";
@@ -801,16 +818,24 @@ export default function Pos() {
 
       {/* ── Modals ── */}
       {modal === 'payment' && <PaymentModal total={total} selectedCustomer={selectedCustomer} onClose={() => setModal(null)} onConfirm={({ method, cashGiven, splitQris, autoPrint }) => {
-        setModal(null);
-        if (method === 'cash') saveToSupabase('cash', { cash: cashGiven });
-        else if (method === 'split') saveToSupabase('split', { cash: cashGiven, qris: splitQris });
-        else if (method === 'kasbon') saveToSupabase('kasbon', { name: selectedCustomer?.name, phone: selectedCustomer?.phone });
-        else saveToSupabase('qris');
-        
+        // Snapshot data before closing and resetting cart
+        const cartSnapshot = [...cart];
+        const totalToSave = Math.round(total);
+        const customerSnapshot = selectedCustomer;
         const methodLabel = method === 'split' ? 'Campuran' : method === 'cash' ? 'Tunai' : method === 'kasbon' ? 'Kasbon' : 'QRIS';
+
+        // Save to Supabase (internally clears UI via finishUI)
+        saveToSupabase(method, { 
+          cash: cashGiven, 
+          qris: splitQris, 
+          name: customerSnapshot?.name, 
+          phone: customerSnapshot?.phone 
+        });
+        
+        setModal(null);
         
         if (autoPrint) {
-          printBluetooth(cart, methodLabel, total, selectedCustomer);
+          printBluetooth(cartSnapshot, methodLabel, totalToSave, customerSnapshot);
         } else {
           printReceipt(methodLabel);
         }
