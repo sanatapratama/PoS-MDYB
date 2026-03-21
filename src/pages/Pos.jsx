@@ -518,7 +518,7 @@ export default function Pos() {
 </head><body>
 
   <div class="logo-wrap">
-    <img src="https://res.cloudinary.com/dsichsufc/image/upload/v1774077572/Gemini_Generated_Image_8kdszf8kdszf8kds_n5l2gf.png" class="logo-img" alt="Logo" />
+    <img src="https://res.cloudinary.com/dsichsufc/image/upload/v1774079104/logo_silentera_l5nepu.jpg" class="logo-img" alt="Logo" style="mix-blend-mode: darken;" />
   </div>
   <div class="store-name">Si Lentera</div>
   <div class="store-sub">by MDYB Store</div>

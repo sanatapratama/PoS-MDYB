@@ -2,13 +2,13 @@
   --font-heading: 'Outfit', sans-serif;
   --font-body: 'Inter', sans-serif;
 
-  /* Professional SaaS Clean White Theme */
-  --bg-color: #ffffff;
+  /* Professional SaaS Soft Cyan Theme */
+  --bg-color: #f4f9fb; /* Soft cyan-tinted white for seamless logo blend */
   --text-primary: #0f172a; /* Slate 900 */
   --text-secondary: #334155; /* Slate 700 */
   
-  --accent-cyan: #06b6d4; /* Vibrant Cyan */
-  --accent-blue: #2563eb; /* Vibrant Blue */
+  --accent-cyan: #22d3ee; /* Light glowing Cyan matches lantern */
+  --accent-blue: #0891b2; /* Deep Cyan matches primary text */
   --accent-pink: #ec4899; 
   
   --panel-bg: rgba(255, 255, 255, 0.85);

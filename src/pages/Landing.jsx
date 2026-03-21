@@ -110,9 +110,9 @@ export default function Landing() {
       <nav className="navbar glass">
         <div className="nav-brand" style={{ display: 'flex', alignItems: 'center' }}>
           <img 
-            src="https://res.cloudinary.com/dsichsufc/image/upload/v1774077572/Gemini_Generated_Image_8kdszf8kdszf8kds_n5l2gf.png" 
+            src="https://res.cloudinary.com/dsichsufc/image/upload/v1774079104/logo_silentera_l5nepu.jpg" 
             alt="Si Lentera Logo" 
-            style={{ height: '40px', objectFit: 'contain', mixBlendMode: 'multiply' }} 
+            style={{ height: '40px', objectFit: 'contain', mixBlendMode: 'darken' }} 
           />
         </div>
 
@@ -163,9 +163,9 @@ export default function Landing() {
         {/* Title */}
         <h1 style={{ maxWidth: '750px', margin: '0 auto', marginBottom: '1.5rem' }}>
           <img 
-            src="https://res.cloudinary.com/dsichsufc/image/upload/v1774077572/Gemini_Generated_Image_8kdszf8kdszf8kds_n5l2gf.png" 
+            src="https://res.cloudinary.com/dsichsufc/image/upload/v1774079104/logo_silentera_l5nepu.jpg" 
             alt="Si Lentera Logo" 
-            style={{ width: '100%', maxWidth: '500px', objectFit: 'contain', mixBlendMode: 'multiply' }} 
+            style={{ width: '100%', maxWidth: '500px', objectFit: 'contain', mixBlendMode: 'darken' }} 
           />
         </h1>
 
