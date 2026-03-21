@@ -787,20 +787,19 @@ export default function Pos() {
 
       {/* ── Modals ── */}
       {modal === 'payment' && <PaymentModal total={total} selectedCustomer={selectedCustomer} onClose={() => setModal(null)} onConfirm={({ method, cashGiven, splitQris }) => {
-        // Capture everything before state is reset
+        // Capture snapshot BEFORE state reset
         const itemsToSave = [...cart];
         const grandTotal = Math.round(total);
         const customerSnapshot = selectedCustomer;
-        const methodLabel = method === 'split' ? 'Campuran' : method === 'cash' ? 'Tunai' : method === 'kasbon' ? 'Kasbon' : 'QRIS';
 
-        // Save + reset UI
+        // saveToSupabase calls finishUI() which sets modal='success' automatically
+        // DO NOT call setModal(null) here - it would overwrite 'success'!
         saveToSupabase(itemsToSave, grandTotal, method, {
           cash: cashGiven,
           qris: splitQris,
           name: customerSnapshot?.name,
           phone: customerSnapshot?.phone
         });
-        setModal(null);
       }} />}
       {modal === 'success' && <SuccessModal
         total={lastTotal}
