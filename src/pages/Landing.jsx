@@ -109,18 +109,11 @@ export default function Landing() {
       {/* ── NAVBAR ── */}
       <nav className="navbar glass">
         <div className="nav-brand">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-            stroke="url(#ng)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <defs>
-              <linearGradient id="ng" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="var(--accent-blue)" />
-                <stop offset="100%" stopColor="var(--accent-cyan)" />
-              </linearGradient>
-            </defs>
-            <polygon points="12 2 2 7 12 12 22 7 12 2" />
-            <polyline points="2 17 12 22 22 17" />
-            <polyline points="2 12 12 17 22 12" />
-          </svg>
+          <img 
+            src="https://res.cloudinary.com/dsichsufc/image/upload/v1774077572/Gemini_Generated_Image_8kdszf8kdszf8kds_n5l2gf.png" 
+            alt="Si Lentera Logo" 
+            style={{ width: '42px', height: '42px', objectFit: 'contain' }} 
+          />
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
             <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               <span>Si <span style={{

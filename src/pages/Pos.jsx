@@ -481,7 +481,7 @@ export default function Pos() {
 
   /* Header */
   .logo-wrap { text-align: center; margin-bottom: 10px; }
-  .logo-circle { width: 70px; height: 70px; border-radius: 50%; border: 2px solid #e5e7eb; background: #f9fafb; display: inline-flex; align-items: center; justify-content: center; font-size: 28px; }
+  .logo-img { width: 70px; height: 70px; border-radius: 50%; object-fit: contain; }
   .store-name { text-align: center; font-size: 15pt; font-weight: 800; margin: 4px 0 2px; letter-spacing: 0.5px; }
   .store-sub { text-align: center; font-size: 9pt; color: #6b7280; }
   .order-type { text-align: center; font-size: 11pt; font-weight: 700; margin: 10px 0 8px; }
@@ -517,7 +517,9 @@ export default function Pos() {
 </style>
 </head><body>
 
-  <div class="logo-wrap"><div class="logo-circle">🏮</div></div>
+  <div class="logo-wrap">
+    <img src="https://res.cloudinary.com/dsichsufc/image/upload/v1774077572/Gemini_Generated_Image_8kdszf8kdszf8kds_n5l2gf.png" class="logo-img" alt="Logo" />
+  </div>
   <div class="store-name">Si Lentera</div>
   <div class="store-sub">by MDYB Store</div>
   <div class="order-type">Kasir / ${payMethod.toUpperCase()}</div>
