@@ -526,10 +526,10 @@ export default function Pos() {
   body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10pt; color: #111; width: ${paperSize === '80mm' ? '80mm' : '58mm'}; background: #fff; padding: 10px 8px 20px; }
 
   /* Header */
-  .logo-wrap { text-align: center; margin-bottom: 10px; }
-  .logo-img { width: 70px; height: 70px; border-radius: 50%; object-fit: contain; }
-  .store-name { text-align: center; font-size: 15pt; font-weight: 800; margin: 4px 0 2px; letter-spacing: 0.5px; }
-  .store-sub { text-align: center; font-size: 9pt; color: #6b7280; }
+  .logo-wrap { text-align: center; margin-bottom: 5px; }
+  .logo-img { width: 120px; height: 120px; object-fit: contain; }
+  .store-name { display: none; }
+  .store-sub { display: none; }
   .order-type { text-align: center; font-size: 11pt; font-weight: 700; margin: 10px 0 8px; }
 
   /* Divider */
@@ -609,7 +609,7 @@ export default function Pos() {
   <div class="dash"></div>
   <div class="paid-box">
     <div class="paid-badge">PAID</div>
-    <div class="paid-time">${now.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })} - ${now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })}</div>
+    <div class="paid-time">${now.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })} - ${now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })} WIB</div>
   </div>
   <div class="dash"></div>
   <div class="thank-you">Thank you for your order!</div>
