@@ -307,6 +307,7 @@ export default function Pos() {
   const [memberSaving, setMemberSaving] = useState(false);
   const [stockForm, setStockForm] = useState({ name: '', category: '', cost_price: '', price: '', stock: '', unit: 'Pcs' });
   const [stockSaving, setStockSaving] = useState(false);
+  const [editProductId, setEditProductId] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [drawerAmount, setDrawerAmount] = useState('');
 
@@ -909,7 +910,16 @@ export default function Pos() {
                   <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Tambah produk baru atau update stok yang sudah ada di database.</p>
 
                   <div className="glass" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>➕ Tambah Produk Baru</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>
+                        {editProductId ? '✏️ Edit Produk' : '➕ Tambah Produk Baru'}
+                      </h4>
+                      {editProductId && (
+                        <button onClick={() => { setEditProductId(null); setStockForm({ name: '', category: '', cost_price: '', price: '', stock: '', unit: 'Pcs' }); }} style={{ background: '#f1f5f9', color: 'var(--text-secondary)', border: 'none', padding: '0.4rem 1rem', borderRadius: '99px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>
+                          Batal Edit
+                        </button>
+                      )}
+                    </div>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.8rem', marginBottom: '0.8rem' }}>
                       <div>
@@ -987,25 +997,35 @@ export default function Pos() {
                           stock: Number(stockForm.stock),
                           unit: stockForm.unit || 'Pcs'
                         };
-                        const { error } = await supabase.from('products').insert([insertData]);
-                        if (error) {
-                          if (error.message.includes('column "unit"')) {
-                            alert("Gagal: Kolom 'unit' belum ada di tabel Supabase. Jalankan SQL: ALTER TABLE products ADD COLUMN unit text default 'Pcs';");
-                          } else if (error.message.includes('column "cost_price"')) {
-                            alert("Gagal: Kolom 'cost_price' belum ada di tabel Supabase. Jalankan SQL: ALTER TABLE products ADD COLUMN cost_price numeric default 0;");
+                        
+                        let reqError = null;
+                        if (editProductId) {
+                          const { error } = await supabase.from('products').update(insertData).eq('id', editProductId);
+                          reqError = error;
+                        } else {
+                          const { error } = await supabase.from('products').insert([insertData]);
+                          reqError = error;
+                        }
+
+                        if (reqError) {
+                          if (reqError.message.includes('column "unit"')) {
+                            alert("Gagal: Kolom 'unit' belum ada di Supabase.");
+                          } else if (reqError.message.includes('column "cost_price"')) {
+                            alert("Gagal: Kolom 'cost_price' belum ada di Supabase.");
                           } else {
-                            alert('Gagal simpan: ' + error.message);
+                            alert('Gagal simpan: ' + reqError.message);
                           }
                         }
                         else { 
                           setStockForm({ name: '', category: '', cost_price: '', price: '', stock: '', unit: 'Pcs' }); 
+                          setEditProductId(null);
                           const { data } = await supabase.from('products').select('*'); 
                           if (data && data.length > 0) setDbProducts(data); 
-                          alert('✅ Produk berhasil ditambahkan!'); 
+                          alert(editProductId ? '✅ Produk berhasil diupdate!' : '✅ Produk berhasil ditambahkan!'); 
                         }
                         setStockSaving(false);
                       }}>
-                      {stockSaving ? 'Menyimpan...' : '📦 Simpan Produk'}
+                      {stockSaving ? 'Menyimpan...' : (editProductId ? '🔄 Update Produk' : '📦 Simpan Produk')}
                     </button>
                   </div>
 
@@ -1031,7 +1051,21 @@ export default function Pos() {
                           <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', fontWeight: 700, color: '#2ed573' }}>{formatIDR(p.price - (p.cost_price || 0))}</td>
                           <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{p.unit || 'Pcs'}</td>
                           <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', color: p.stock <= 5 ? '#e74c3c' : '#27ae60', fontWeight: 700 }}>{p.stock}</td>
-                          <td style={{ padding: '0.4rem', textAlign: 'center' }}>
+                          <td style={{ padding: '0.4rem', textAlign: 'center', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                            <button
+                              onClick={() => {
+                                if (typeof p.id === 'number') {
+                                  alert('❌ Ini adalah produk contoh bawaan (Mock Data). Tidak bisa diedit.');
+                                  return;
+                                }
+                                setEditProductId(p.id);
+                                setStockForm({ name: p.name, category: p.category, cost_price: p.cost_price || '', price: p.price, stock: p.stock, unit: p.unit || 'Pcs' });
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }}
+                              style={{ background: '#e0f2fe', border: 'none', borderRadius: '8px', padding: '0.4rem 0.65rem', cursor: 'pointer', color: '#0284c7', fontWeight: 700, fontSize: '0.85rem' }}
+                              title="Edit Produk">
+                              ✏️
+                            </button>
                             <button
                               onClick={async () => {
                                 if (typeof p.id === 'number') {
