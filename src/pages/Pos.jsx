@@ -317,10 +317,14 @@ export default function Pos() {
   const [members, setMembers] = useState([]);
   const [memberForm, setMemberForm] = useState({ name: '', phone: '', debt_balance: '' });
   const [memberSaving, setMemberSaving] = useState(false);
+  const [editMemberId, setEditMemberId] = useState(null);
   const [stockForm, setStockForm] = useState({ name: '', category: '', cost_price: '', price: '', stock: '', unit: 'Pcs' });
   const [stockSaving, setStockSaving] = useState(false);
   const [editProductId, setEditProductId] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [txForm, setTxForm] = useState({ total: '', payment_method: 'cash' });
+  const [txSaving, setTxSaving] = useState(false);
+  const [editTxId, setEditTxId] = useState(null);
   const [drawerAmount, setDrawerAmount] = useState('');
 
   // Cart extra states
@@ -844,7 +848,16 @@ export default function Pos() {
                   <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Tambah pelanggan baru dan pantau saldo hutang (kasbon) mereka.</p>
 
                   <div className="glass" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
-                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>➕ Tambah Pelanggan Baru</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>
+                        {editMemberId ? '✏️ Edit Data Pelanggan' : '➕ Tambah Pelanggan Baru'}
+                      </h4>
+                      {editMemberId && (
+                        <button onClick={() => { setEditMemberId(null); setMemberForm({ name: '', phone: '', debt_balance: '' }); }} style={{ background: '#f1f5f9', color: 'var(--text-secondary)', border: 'none', padding: '0.4rem 1rem', borderRadius: '99px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>
+                          Batal Edit
+                        </button>
+                      )}
+                    </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Nama Pelanggan *</label>
@@ -883,17 +896,28 @@ export default function Pos() {
                       onClick={async () => {
                         if (!memberForm.name.trim()) return alert('Nama pelanggan wajib diisi');
                         setMemberSaving(true);
-                        const { error } = await supabase.from('members').insert([{ name: memberForm.name.trim(), phone: memberForm.phone.trim() || null, debt_balance: Number(memberForm.debt_balance) || 0 }]);
-                        if (error) alert('Gagal simpan: ' + error.message);
+                        const dataPayload = { name: memberForm.name.trim(), phone: memberForm.phone.trim() || null, debt_balance: Number(memberForm.debt_balance) || 0, created_at: new Date().toISOString() };
+                        let reqError = null;
+                        
+                        if (editMemberId) {
+                          const { error } = await supabase.from('members').update(dataPayload).eq('id', editMemberId);
+                          reqError = error;
+                        } else {
+                          const { error } = await supabase.from('members').insert([dataPayload]);
+                          reqError = error;
+                        }
+
+                        if (reqError) alert('Gagal simpan: ' + reqError.message);
                         else {
                           setMemberForm({ name: '', phone: '', debt_balance: '' });
+                          setEditMemberId(null);
                           const { data } = await supabase.from('members').select('*').order('created_at', { ascending: false });
                           if (data) setMembers(data);
-                          alert('✅ Pelanggan berhasil ditambahkan!');
+                          alert(editMemberId ? '✅ Pelanggan berhasil diupdate!' : '✅ Pelanggan berhasil ditambahkan!');
                         }
                         setMemberSaving(false);
                       }}>
-                      {memberSaving ? 'Menyimpan...' : '💾 Simpan Pelanggan'}
+                      {memberSaving ? 'Menyimpan...' : (editMemberId ? '🔄 Update Pelanggan' : '💾 Simpan Pelanggan')}
                     </button>
                   </div>
 
@@ -906,14 +930,26 @@ export default function Pos() {
                             <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Nama</th>
                             <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>No. WA</th>
                             <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Hutang</th>
-                            <th style={{ textAlign: 'center', padding: '0.6rem', color: 'var(--text-secondary)' }}>Hapus</th>
+                            <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Perubahan Terakhir</th>
+                            <th style={{ textAlign: 'center', padding: '0.6rem', color: 'var(--text-secondary)' }}>Aksi</th>
                           </tr></thead>
                           <tbody>{members.map(m => (
                             <tr key={m.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                               <td style={{ padding: '0.7rem 0.6rem', fontWeight: 600 }}>{m.name}</td>
                               <td style={{ padding: '0.7rem 0.6rem', color: 'var(--text-secondary)' }}>{m.phone || '-'}</td>
                               <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', color: m.debt_balance > 0 ? '#e74c3c' : '#27ae60', fontWeight: 700 }}>{formatIDR(m.debt_balance || 0)}</td>
-                              <td style={{ textAlign: 'center', padding: '0.4rem' }}>
+                              <td style={{ padding: '0.7rem 0.6rem', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{new Date(m.created_at).toLocaleString('id-ID')}</td>
+                              <td style={{ textAlign: 'center', padding: '0.4rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                                <button
+                                  onClick={() => {
+                                    setEditMemberId(m.id);
+                                    setMemberForm({ name: m.name, phone: m.phone || '', debt_balance: m.debt_balance || 0 });
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  }}
+                                  style={{ background: '#e0f2fe', border: 'none', borderRadius: '8px', padding: '0.4rem 0.65rem', cursor: 'pointer', color: '#0284c7', fontWeight: 700, fontSize: '0.85rem' }}
+                                  title="Edit Pelanggan">
+                                  ✏️
+                                </button>
                                 <button
                                   onClick={async () => {
                                     if (!window.confirm(`Hapus pelanggan "${m.name}"?`)) return;
@@ -1127,19 +1163,112 @@ export default function Pos() {
                 <div style={{ maxWidth: '900px', margin: '0 auto' }}>
                   <h2 style={{ color: 'var(--accent-blue)', marginBottom: '0.3rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}><Clock size={28}/> Riwayat Transaksi</h2>
                   <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Semua pesanan yang sudah diselesaikan tercatat di sini secara otomatis.</p>
+                  <div className="glass" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                      <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>
+                        {editTxId ? '✏️ Edit Riwayat Transaksi' : '➕ Tambah Riwayat Manual'} 
+                      </h4>
+                      {editTxId && (
+                        <button onClick={() => { setEditTxId(null); setTxForm({ total: '', payment_method: 'cash' }); }} style={{ background: '#f1f5f9', color: 'var(--text-secondary)', border: 'none', padding: '0.4rem 1rem', borderRadius: '99px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>
+                          Batal Edit
+                        </button>
+                      )}
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Total Transaksi (Rp) *</label>
+                        <input
+                          type="number"
+                          style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a' }}
+                          placeholder="Misal: 50000" value={txForm.total}
+                          onChange={e => setTxForm(f => ({ ...f, total: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Metode Pembayaran *</label>
+                        <select
+                          style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a' }}
+                          value={txForm.payment_method}
+                          onChange={e => setTxForm(f => ({ ...f, payment_method: e.target.value }))}>
+                          <option value="cash">Tunai (Cash)</option>
+                          <option value="qris">QRIS</option>
+                          <option value="split">Campuran (Split)</option>
+                          <option value="kasbon">Kasbon (Hutang)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button
+                      style={{ background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))', color: '#fff', border: 'none', borderRadius: '99px', padding: '0.75rem 2.5rem', fontWeight: 700, cursor: txSaving ? 'not-allowed' : 'pointer', opacity: txSaving ? 0.7 : 1, fontSize: '0.95rem' }}
+                      onClick={async () => {
+                        if (!txForm.total) return alert('Total transaksi wajib diisi!');
+                        setTxSaving(true);
+                        const dataPayload = { 
+                          total: Number(txForm.total), 
+                          subtotal: Number(txForm.total), 
+                          tax: 0, 
+                          items: editTxId ? (transactions.find(t=>t.id===editTxId)?.items || []) : [{ name: 'Transaksi Manual', qty: 1, price: Number(txForm.total) }],
+                          payment_method: txForm.payment_method,
+                          created_at: new Date().toISOString()
+                        };
+                        let reqErr = null;
+                        if (editTxId) {
+                          const { error } = await supabase.from('transactions').update(dataPayload).eq('id', editTxId);
+                          reqErr = error;
+                        } else {
+                          const { error } = await supabase.from('transactions').insert([dataPayload]);
+                          reqErr = error;
+                        }
+                        if (reqErr) alert('Gagal: ' + reqErr.message);
+                        else {
+                          setTxForm({ total: '', payment_method: 'cash' });
+                          setEditTxId(null);
+                          const { data } = await supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(50);
+                          if (data) setTransactions(data);
+                          alert(editTxId ? '✅ Transaksi berhasil diupdate!' : '✅ Transaksi manual berhasil ditambahkan!');
+                        }
+                        setTxSaving(false);
+                      }}>
+                      {txSaving ? 'Menyimpan...' : (editTxId ? '🔄 Update Transaksi' : '💾 Simpan Transaksi')}
+                    </button>
+                  </div>
+
                   <div className="glass" style={{ padding: '1.5rem' }}>
+                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>📋 Daftar Riwayat</h4>
                     {transactions.length === 0 ? <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>Belum ada transaksi tercatat.</p> :
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                         <thead><tr style={{ borderBottom: '2px solid #e2e8f0' }}>
                           <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Waktu</th>
                           <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Metode</th>
                           <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Total</th>
+                          <th style={{ textAlign: 'center', padding: '0.6rem', color: 'var(--text-secondary)' }}>Aksi</th>
                         </tr></thead>
                         <tbody>{transactions.map(t => (
                           <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                             <td style={{ padding: '0.7rem 0.6rem', color: 'var(--text-secondary)' }}>{new Date(t.created_at).toLocaleString('id-ID')}</td>
-                            <td style={{ padding: '0.7rem 0.6rem' }}><span style={{ background: t.payment_method === 'cash' ? 'rgba(39,174,96,0.1)' : 'rgba(37,99,235,0.1)', color: t.payment_method === 'cash' ? '#27ae60' : 'var(--accent-blue)', borderRadius: '99px', padding: '0.2rem 0.8rem', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>{t.payment_method}</span></td>
-                            <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', fontWeight: 700 }}>{formatIDR(t.total_amount)}</td>
+                            <td style={{ padding: '0.7rem 0.6rem' }}><span style={{ background: t.payment_method === 'cash' ? 'rgba(39,174,96,0.1)' : (t.payment_method === 'kasbon' ? '#fee2e2' : 'rgba(37,99,235,0.1)'), color: t.payment_method === 'cash' ? '#27ae60' : (t.payment_method === 'kasbon' ? '#dc2626' : 'var(--accent-blue)'), borderRadius: '99px', padding: '0.2rem 0.8rem', fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>{t.payment_method}</span></td>
+                            <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', fontWeight: 700 }}>{formatIDR(t.total)}</td>
+                            <td style={{ textAlign: 'center', padding: '0.4rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
+                              <button
+                                onClick={() => {
+                                  setEditTxId(t.id);
+                                  setTxForm({ total: t.total || '', payment_method: t.payment_method || 'cash' });
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
+                                style={{ background: '#e0f2fe', border: 'none', borderRadius: '8px', padding: '0.4rem 0.65rem', cursor: 'pointer', color: '#0284c7', fontWeight: 700, fontSize: '0.85rem' }}
+                                title="Edit Laporan">
+                                ✏️
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  if (!window.confirm('Hapus transaksi ini permanen? Peringatan: Hapus manual tidak akan me-revert stok otomatis secara lokal namun data laporan akan terhapus bersih.')) return;
+                                  const { error } = await supabase.from('transactions').delete().eq('id', t.id);
+                                  if (error) alert('Gagal hapus: ' + error.message);
+                                  else setTransactions(prev => prev.filter(x => x.id !== t.id));
+                                }}
+                                style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '0.4rem 0.65rem', cursor: 'pointer', color: '#dc2626', fontWeight: 700, fontSize: '0.85rem' }}
+                                title="Hapus Laporan">
+                                🗑
+                              </button>
+                            </td>
                           </tr>
                         ))}</tbody>
                       </table>
