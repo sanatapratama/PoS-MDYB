@@ -72,7 +72,129 @@ async function printViaBluetooth(cartData, totalAmount, payMethod, txId, now, ac
   }
 }
 
+// ──────────────────────── UTILS WEB PRINT (NOTA) ────────────────────────
+function printReceiptBrowser(items, methodLabel, grandTotal, customer, cashierName, txId, now) {
+  const subtotalAmt = items.reduce((s, i) => s + (i.price * i.qty), 0);
+  const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }) + ' WIB';
+
+  // Format IDR Helper
+  const fmt = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(num);
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Browser memblokir pop-up print. Izinkan pop-up untuk mencetak!');
+    return;
+  }
+
+  printWindow.document.write(`
+    <html>
+    <head>
+      <title>Nota Si Lentera</title>
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        @media print { margin: 0; }
+        body { font-family: 'Inter', sans-serif; font-size: 10pt; color: #111; margin: 0; padding: 15px; width: 300px; max-width: 100%; display: flex; flex-direction: column; align-items: center; }
+        .logo { max-width: 180px; margin-bottom: 5px; }
+        .title { font-size: 13pt; font-weight: 800; text-align: center; margin-bottom: 8px; }
+        .line-dash { border-top: 1.5px dashed #cbd5e1; width: 100%; margin: 10px 0; }
+        .line-solid { border-top: 1.5px solid #111; width: 100%; margin: 8px 0; }
+        .flex-between { display: flex; justify-content: space-between; align-items: flex-start; width: 100%; margin: 3px 0; }
+        small { font-size: 8pt; color: #64748b; }
+        .bold { font-weight: 700; font-size: 9.5pt; }
+        .text-right { text-align: right; }
+        .items { width: 100%; margin: 8px 0; }
+        .total-row { font-size: 14pt; font-weight: 900; display: flex; justify-content: space-between; width: 100%; margin: 10px 0; }
+        .paid-badge { font-size: 18pt; font-weight: 900; color: #dc2626; text-shadow: 1px 1px 0 #000; letter-spacing: 2px; text-align: center; margin-top: 15px; position:relative; }
+        .paid-badge::before { content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 120%; height: 3px; background: #dc2626; z-index: -1; opacity: 0.5; }
+        .footer { text-align: center; width: 100%; font-size: 8.5pt; color: #475569; margin-top: 15px; line-height: 1.4; }
+      </style>
+    </head>
+    <body>
+      <img src="https://res.cloudinary.com/dvz0zvpwr/image/upload/v1774077332/mdyb_logo_dark_pos_txlz5.png" class="logo" />
+      <div class="title">Kasir / ${methodLabel.toUpperCase()}</div>
+      
+      <div class="flex-between" style="margin-top:5px;">
+        <div><small>Tanggal</small><br/><span class="bold">${dateStr}</span></div>
+        <div class="text-right"><small>Kasir</small><br/><span class="bold">${cashierName}</span></div>
+      </div>
+      <div class="flex-between" style="margin-top: 8px;">
+        <div><small>Trx ID</small><br/><span class="bold">${txId}</span></div>
+        <div class="text-right"><small>Pelanggan</small><br/><span class="bold">${customer?.name || 'Anonim'}</span></div>
+      </div>
+      
+      <div class="line-dash"></div>
+      
+      <div class="items">
+        ${items.map(item => `
+          <div class="flex-between" style="margin-bottom:6px;">
+            <div style="flex:1; padding-right:10px;">${item.name} x${item.qty}</div>
+            <div style="white-space:nowrap;">${fmt(item.price * item.qty)}</div>
+          </div>
+        `).join('')}
+      </div>
+      
+      <div class="line-dash"></div>
+      
+      <div class="items" style="width: 100%;">
+        <div class="bold" style="margin-bottom: 6px; font-size:10pt;">Payment Details</div>
+        <div class="flex-between">
+          <div>Subtotal</div>
+          <div>${fmt(subtotalAmt)}</div>
+        </div>
+      </div>
+      
+      <div class="line-solid"></div>
+      
+      <div class="total-row">
+        <div>Total</div>
+        <div>${fmt(grandTotal)}</div>
+      </div>
+      
+      <div class="line-dash"></div>
+      
+      <div class="items" style="width: 100%;">
+        <div class="bold" style="margin-bottom: 6px; font-size:10pt;">Payment Method</div>
+        <div class="flex-between">
+          <div>${methodLabel}</div>
+          <div>${fmt(grandTotal)}</div>
+        </div>
+        <div class="flex-between">
+          <div>Kembalian</div>
+          <div>Rp 0</div>
+        </div>
+      </div>
+      
+      <div class="line-dash"></div>
+      
+      <div class="paid-badge">
+        <span style="position:relative; z-index:2; background:#fff; padding:0 8px;">PAID</span>
+        <div style="position:absolute; width:100%; height:2px; background:#dc2626; top:50%; left:0; z-index:1;"></div>
+      </div>
+      
+      <div class="footer">
+        <div style="margin-bottom:8px">${dateStr} - ${timeStr}</div>
+        Thank you for your order!<br/>
+        <span style="font-size:7pt; margin-top:4px; display:inline-block;">★ Si Lentera · Solusi Kasir Ringan ★</span>
+      </div>
+      
+      <script>
+        window.onload = function() { 
+          setTimeout(() => {
+            window.print(); 
+            // Optional: window.close() after print dialog closes
+            // window.close(); 
+          }, 300);
+        }
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
 const DICT = {
+
   ID: {
     searchPlaceholder: "Cari produk, SKU atau scan barcode...",
     online: "Supabase Synced", offline: "Tersimpan Lokal (Offline)",
@@ -231,7 +353,7 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
   );
 }
 
-function SuccessModal({ total, onClose, onBluetoothPrint, onSendWA }) {
+function SuccessModal({ total, onClose, onBluetoothPrint, onSendWA, onWebPrint }) {
   return (
     <div className="modal-overlay">
       <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -241,9 +363,13 @@ function SuccessModal({ total, onClose, onBluetoothPrint, onSendWA }) {
           Total: <strong style={{ color: 'var(--text-primary)', fontSize: '1.2rem' }}>{formatIDR(total)}</strong>
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem' }}>
+          <button onClick={onWebPrint}
+            style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: '#0ea5e9', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.95rem' }}>
+            <Printer size={20} /> Cetak Struk Web (Nota)
+          </button>
           <button onClick={onBluetoothPrint}
             style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.95rem' }}>
-            <Bluetooth size={20} /> Cetak Struk Bluetooth
+            <Bluetooth size={20} /> Cetak Bluetooth (Thermal)
           </button>
           <button onClick={onSendWA}
             style={{ width: '100%', padding: '1rem', borderRadius: '12px', background: '#25D366', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '0.95rem' }}>
@@ -541,6 +667,15 @@ export default function Pos() {
     }
   };
 
+  // ── web print (Format Nota HTML) ──
+  const handleWebPrint = () => {
+    if (!lastCart || lastCart.length === 0) return;
+    const now = new Date();
+    const txId = 'SL' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getTime()).slice(-5);
+    const cashierName = activeUser ? activeUser.name : text.admin;
+    printReceiptBrowser(lastCart, lastMethod, lastTotal, selectedCustomer, cashierName, txId, now);
+  };
+
   // ── bluetooth print (Direct ESC/POS) ──
   const printBluetooth = async (cartToPrint, method, totalToPrint, customer) => {
     if (!cartToPrint || cartToPrint.length === 0) {
@@ -804,6 +939,7 @@ export default function Pos() {
       {modal === 'success' && <SuccessModal
         total={lastTotal}
         onClose={() => setModal(null)}
+        onWebPrint={handleWebPrint}
         onBluetoothPrint={() => printBluetooth(lastCart, lastMethod, lastTotal, selectedCustomer)}
         onSendWA={() => {
           if (!selectedCustomer?.phone) {
