@@ -17,14 +17,14 @@ const WHOLESALE_RULES = {
 };
 
 const MOCK_PRODUCTS = [
-  { id: 1, name: 'Espresso Core',       category: 'Drinks', price: 25000, stock: 45 },
-  { id: 2, name: 'Cyber Matcha Latte',  category: 'Drinks', price: 35000, stock: 12 },
-  { id: 3, name: 'Neon Glitch Burger',  category: 'Food',   price: 45000, stock: 5  },
-  { id: 4, name: 'Quantum Fries',       category: 'Snacks', price: 20000, stock: 80 },
-  { id: 5, name: 'Zero-G Water',        category: 'Drinks', price: 10000, stock: 120},
-  { id: 6, name: 'Holo-Donut',          category: 'Snacks', price: 15000, stock: 2  },
-  { id: 7, name: 'Void Coffee',         category: 'Drinks', price: 28000, stock: 34 },
-  { id: 8, name: 'Synthwave Pasta',     category: 'Food',   price: 55000, stock: 15 },
+  { id: 1, name: 'Espresso Core',       category: 'Drinks', price: 25000, stock: 45, unit: 'Cup' },
+  { id: 2, name: 'Cyber Matcha Latte',  category: 'Drinks', price: 35000, stock: 12, unit: 'Cup' },
+  { id: 3, name: 'Neon Glitch Burger',  category: 'Food',   price: 45000, stock: 5,  unit: 'Pcs' },
+  { id: 4, name: 'Quantum Fries',       category: 'Snacks', price: 20000, stock: 80, unit: 'Pack' },
+  { id: 5, name: 'Zero-G Water',        category: 'Drinks', price: 10000, stock: 120, unit: 'Botol' },
+  { id: 6, name: 'Holo-Donut',          category: 'Snacks', price: 15000, stock: 2,  unit: 'Pcs' },
+  { id: 7, name: 'Void Coffee',         category: 'Drinks', price: 28000, stock: 34, unit: 'Cup' },
+  { id: 8, name: 'Synthwave Pasta',     category: 'Food',   price: 55000, stock: 15, unit: 'Porsi' },
 ];
 
 const DICT = {
@@ -305,7 +305,7 @@ export default function Pos() {
   const [members, setMembers] = useState([]);
   const [memberForm, setMemberForm] = useState({ name: '', phone: '', debt_balance: '' });
   const [memberSaving, setMemberSaving] = useState(false);
-  const [stockForm, setStockForm] = useState({ name: '', category: '', price: '', stock: '' });
+  const [stockForm, setStockForm] = useState({ name: '', category: '', price: '', stock: '', unit: 'Pcs' });
   const [stockSaving, setStockSaving] = useState(false);
   const [transactions, setTransactions] = useState([]);
   const [drawerAmount, setDrawerAmount] = useState('');
@@ -908,40 +908,88 @@ export default function Pos() {
 
                   <div className="glass" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                     <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>➕ Tambah Produk Baru</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.8rem', marginBottom: '0.8rem' }}>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Nama Produk *</label>
-                        <input style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
-                          placeholder="Es Teh Manis" value={stockForm.name}
+                        <input
+                          style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a' }}
+                          placeholder="Misal: Es Teh Manis" value={stockForm.name}
                           onChange={e => setStockForm(f => ({ ...f, name: e.target.value }))} />
                       </div>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Kategori *</label>
-                        <input style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
-                          placeholder="Drinks" value={stockForm.category}
+                        <input
+                          style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a' }}
+                          placeholder="Minuman, Makanan, dsb." value={stockForm.category}
                           onChange={e => setStockForm(f => ({ ...f, category: e.target.value }))} />
                       </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1.5fr 1fr', gap: '0.8rem', marginBottom: '1.5rem' }}>
                       <div>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Harga Jual (Rp) *</label>
-                        <input type="number" style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
+                        <input
+                          type="number"
+                          style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a' }}
                           placeholder="5000" value={stockForm.price}
                           onChange={e => setStockForm(f => ({ ...f, price: e.target.value }))} />
                       </div>
                       <div>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Satuan (Unit)</label>
+                        <select
+                          style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a', cursor: 'pointer' }}
+                          value={stockForm.unit}
+                          onChange={e => setStockForm(f => ({ ...f, unit: e.target.value }))}>
+                          <option value="Pcs">Pcs</option>
+                          <option value="Pack">Pack</option>
+                          <option value="Karton">Karton</option>
+                          <option value="Dus">Dus</option>
+                          <option value="Lusin">Lusin</option>
+                          <option value="Gram">Gram</option>
+                          <option value="Kg">Kg</option>
+                          <option value="Liter">Liter</option>
+                          <option value="Botol">Botol</option>
+                          <option value="Cup">Cup</option>
+                          <option value="Porsi">Porsi</option>
+                        </select>
+                      </div>
+                      <div>
                         <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Jumlah Stok *</label>
-                        <input type="number" style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none' }}
+                        <input
+                          type="number"
+                          style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a' }}
                           placeholder="100" value={stockForm.stock}
                           onChange={e => setStockForm(f => ({ ...f, stock: e.target.value }))} />
                       </div>
                     </div>
+                    
                     <button
-                      style={{ background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))', color: '#fff', border: 'none', borderRadius: '99px', padding: '0.75rem 2.5rem', fontWeight: 700, cursor: stockSaving ? 'not-allowed' : 'pointer', opacity: stockSaving ? 0.7 : 1 }}
+                      style={{ background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))', color: '#fff', border: 'none', borderRadius: '99px', padding: '0.8rem 2.5rem', fontWeight: 700, cursor: stockSaving ? 'not-allowed' : 'pointer', opacity: stockSaving ? 0.7 : 1, width: '100%' }}
                       onClick={async () => {
                         if (!stockForm.name || !stockForm.price || !stockForm.stock) return alert('Nama, harga, dan stok wajib diisi');
                         setStockSaving(true);
-                        const { error } = await supabase.from('products').insert([{ name: stockForm.name, category: stockForm.category || 'Lainnya', price: Number(stockForm.price), stock: Number(stockForm.stock) }]);
-                        if (error) alert('Gagal simpan: ' + error.message);
-                        else { setStockForm({ name: '', category: '', price: '', stock: '' }); const { data } = await supabase.from('products').select('*'); if (data && data.length > 0) setDbProducts(data); alert('✅ Produk berhasil ditambahkan!'); }
+                        const insertData = { 
+                          name: stockForm.name, 
+                          category: stockForm.category || 'Lainnya', 
+                          price: Number(stockForm.price), 
+                          stock: Number(stockForm.stock),
+                          unit: stockForm.unit || 'Pcs'
+                        };
+                        const { error } = await supabase.from('products').insert([insertData]);
+                        if (error) {
+                          if (error.message.includes('column "unit"')) {
+                            alert("Gagal: Kolom 'unit' belum ada di tabel Supabase. Jalankan query SQL: ALTER TABLE products ADD COLUMN unit text default 'Pcs';");
+                          } else {
+                            alert('Gagal simpan: ' + error.message);
+                          }
+                        }
+                        else { 
+                          setStockForm({ name: '', category: '', price: '', stock: '', unit: 'Pcs' }); 
+                          const { data } = await supabase.from('products').select('*'); 
+                          if (data && data.length > 0) setDbProducts(data); 
+                          alert('✅ Produk berhasil ditambahkan!'); 
+                        }
                         setStockSaving(false);
                       }}>
                       {stockSaving ? 'Menyimpan...' : '📦 Simpan Produk'}
@@ -955,14 +1003,32 @@ export default function Pos() {
                         <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Nama Produk</th>
                         <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Kategori</th>
                         <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Harga</th>
+                        <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Satuan</th>
                         <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Stok</th>
+                        <th style={{ textAlign: 'center', padding: '0.6rem', color: 'var(--text-secondary)' }}>Aksi</th>
                       </tr></thead>
                       <tbody>{dbProducts.map(p => (
                         <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                           <td style={{ padding: '0.7rem 0.6rem', fontWeight: 600 }}>{p.name}</td>
                           <td style={{ padding: '0.7rem 0.6rem' }}><span style={{ background: 'rgba(37,99,235,0.08)', color: 'var(--accent-blue)', borderRadius: '99px', padding: '0.2rem 0.7rem', fontSize: '0.8rem' }}>{p.category}</span></td>
                           <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', fontWeight: 700 }}>{formatIDR(p.price)}</td>
+                          <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{p.unit || 'Pcs'}</td>
                           <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', color: p.stock <= 5 ? '#e74c3c' : '#27ae60', fontWeight: 700 }}>{p.stock}</td>
+                          <td style={{ padding: '0.4rem', textAlign: 'center' }}>
+                            <button
+                              onClick={async () => {
+                                if (!window.confirm(`Hapus produk "${p.name}" secara permanen?`)) return;
+                                const { error } = await supabase.from('products').delete().eq('id', p.id);
+                                if (error) alert('Gagal hapus: ' + error.message);
+                                else {
+                                  setDbProducts(prev => prev.filter(x => x.id !== p.id));
+                                }
+                              }}
+                              style={{ background: '#fee2e2', border: 'none', borderRadius: '8px', padding: '0.4rem 0.65rem', cursor: 'pointer', color: '#dc2626', fontWeight: 700, fontSize: '0.85rem' }}
+                              title="Hapus Produk">
+                              🗑
+                            </button>
+                          </td>
                         </tr>
                       ))}</tbody>
                     </table>
