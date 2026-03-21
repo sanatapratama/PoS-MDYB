@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { 
   Search, ScanLine, LayoutGrid, Clock, Settings, User, 
@@ -270,9 +270,21 @@ function LoginScreen({ cashiers, onLogin }) {
 
 // ──────────────────────── MAIN POS ────────────────────────
 
-export default function Pos({ isAdmin = false }) {
+export default function Pos() {
   const navigate = useNavigate();
-  const [activeUser, setActiveUser] = useState(null); // Tracks logged in user
+  const location = useLocation();
+  const [activeUser, setActiveUser] = useState(() => {
+    const saved = localStorage.getItem('activeUser');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  useEffect(() => {
+    if (!activeUser && location.pathname === '/pos') {
+      navigate('/admin');
+    } else if (activeUser && location.pathname === '/admin') {
+      navigate('/pos');
+    }
+  }, [activeUser, location.pathname, navigate]);
   const [lang, setLang] = useState('ID');
   const [activeMenu, setActiveMenu] = useState('pos'); // Menampung halaman yang dikunjungi
   const [isOffline, setIsOffline] = useState(false);
@@ -578,9 +590,15 @@ export default function Pos({ isAdmin = false }) {
     if (w) { w.document.write(printContent); w.document.close(); w.focus(); setTimeout(() => { w.print(); }, 400); }
   };
 
-  if (isAdmin && !activeUser) {
-    return <LoginScreen cashiers={dbCashiers} onLogin={(user) => setActiveUser(user)} />;
+  if (!activeUser && location.pathname === '/admin') {
+    return <LoginScreen cashiers={dbCashiers} onLogin={(user) => {
+      setActiveUser(user);
+      localStorage.setItem('activeUser', JSON.stringify(user));
+      navigate('/pos');
+    }} />;
   }
+
+  if (!activeUser) return null; // Avoid render flash during redirect
 
   return (
     <div className={`pos-container visible view-${viewMode} ${isDarkMode ? 'dark-mode' : ''}`}>
@@ -599,7 +617,9 @@ export default function Pos({ isAdmin = false }) {
         <div 
           className="nav-icon" 
           onClick={() => {
-            if (window.confirm('Apakah Anda yakin ingin kembali ke menu utama (Home)? \n⚠ Perhatian: Data pesanan kasir yang belum disimpan ke database mungkin akan dikosongkan.')) {
+            if (window.confirm('Apakah Anda yakin ingin logout dan kembali ke menu utama (Home)? \n⚠ Perhatian: Data pesanan kasir yang belum disimpan ke database mungkin akan dikosongkan.')) {
+              localStorage.removeItem('activeUser');
+              setActiveUser(null);
               navigate('/');
             }
           }} 
@@ -610,15 +630,11 @@ export default function Pos({ isAdmin = false }) {
         </div>
         <div style={{ marginTop: '1rem' }}/>
         <div className={`nav-icon ${activeMenu === 'pos' ? 'active' : ''}`} onClick={() => setActiveMenu('pos')}><LayoutGrid size={26}/><span className="nav-label">POS</span></div>
-        {isAdmin && (
-          <>
-            <div className={`nav-icon ${activeMenu === 'history' ? 'active' : ''}`} onClick={() => setActiveMenu('history')}><Clock size={26}/><span className="nav-label">HISTORY</span></div>
-            <div className={`nav-icon ${activeMenu === 'members' ? 'active' : ''}`} onClick={() => setActiveMenu('members')}><User size={26}/><span className="nav-label">MEMBERS</span></div>
-            <div className={`nav-icon ${activeMenu === 'report' ? 'active' : ''}`} onClick={() => setActiveMenu('report')}><FileBarChart size={26}/><span className="nav-label">REPORT</span></div>
-            <div className={`nav-icon ${activeMenu === 'stock' ? 'active' : ''}`} onClick={() => setActiveMenu('stock')}><Package size={26}/><span className="nav-label">STOCK</span></div>
-            <div className={`nav-icon ${activeMenu === 'drawer' ? 'active' : ''}`} onClick={() => setActiveMenu('drawer')}><Unlock size={26}/><span className="nav-label">DRAWER</span></div>
-          </>
-        )}
+        <div className={`nav-icon ${activeMenu === 'history' ? 'active' : ''}`} onClick={() => setActiveMenu('history')}><Clock size={26}/><span className="nav-label">HISTORY</span></div>
+        <div className={`nav-icon ${activeMenu === 'members' ? 'active' : ''}`} onClick={() => setActiveMenu('members')}><User size={26}/><span className="nav-label">MEMBERS</span></div>
+        <div className={`nav-icon ${activeMenu === 'report' ? 'active' : ''}`} onClick={() => setActiveMenu('report')}><FileBarChart size={26}/><span className="nav-label">REPORT</span></div>
+        <div className={`nav-icon ${activeMenu === 'stock' ? 'active' : ''}`} onClick={() => setActiveMenu('stock')}><Package size={26}/><span className="nav-label">STOCK</span></div>
+        <div className={`nav-icon ${activeMenu === 'drawer' ? 'active' : ''}`} onClick={() => setActiveMenu('drawer')}><Unlock size={26}/><span className="nav-label">DRAWER</span></div>
         <div className={`nav-icon ${activeMenu === 'options' ? 'active' : ''}`} style={{ marginTop: 'auto' }} onClick={() => setActiveMenu('options')}><Settings size={26}/><span className="nav-label">OPTIONS</span></div>
       </aside>
 

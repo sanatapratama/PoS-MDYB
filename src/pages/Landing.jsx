@@ -179,7 +179,7 @@ export default function Landing() {
 
         {/* CTA Buttons */}
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <button className="btn-primary float-element" onClick={() => navigate('/pos')}
+          <button className="btn-primary float-element" onClick={() => navigate('/admin')}
             style={{ padding: '0.9rem 2.5rem', fontSize: '1.05rem', boxShadow: '0 15px 30px -10px rgba(37,99,235,0.4)', letterSpacing: '0.02em', fontWeight: 'bold' }}>
             {text.cta} →
           </button>

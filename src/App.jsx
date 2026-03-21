@@ -10,8 +10,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/pos" element={<Pos isAdmin={false} />} />
-        <Route path="/admin" element={<Pos isAdmin={true} />} />
+        <Route path="/pos" element={<Pos />} />
+        <Route path="/admin" element={<Pos />} />
       </Routes>
     </BrowserRouter>
   )
