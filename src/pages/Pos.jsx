@@ -628,14 +628,24 @@ export default function Pos() {
       const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
       const characteristic = await service.getCharacteristic('00002af0-0000-1000-8000-00805f9b34fb');
       
-      // Send in chunks of 512 bytes
-      const chunkSize = 512;
+      // Standard BLE characteristics often have a limited MTU. 
+      // 20 bytes is the safest chunk size for most thermal printers.
+      const chunkSize = 20;
       for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, i + chunkSize);
-        await characteristic.writeValue(chunk);
+        
+        // Priority to writeWithoutResponse to avoid "GATT operation not permitted"
+        if (characteristic.properties.writeWithoutResponse) {
+          await characteristic.writeValueWithoutResponse(chunk);
+        } else {
+          await characteristic.writeValueWithResponse(chunk);
+        }
+        
+        // Small delay to prevent printer buffer overflow
+        await new Promise(resolve => setTimeout(resolve, 30));
       }
       
-      console.log('Bluetooth printing done');
+      console.log('Bluetooth printing success');
     } catch (error) {
       console.error('Bluetooth Print Error:', error);
       if (error.name !== 'NotFoundError') {
