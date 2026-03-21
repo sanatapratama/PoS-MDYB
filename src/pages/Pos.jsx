@@ -602,13 +602,12 @@ export default function Pos() {
   <div class="pay-row"><span>${payMethod}</span><span>${formatIDR(grandTotal)}</span></div>
   <div class="pay-row"><span>Kembalian</span><span>${formatIDR(0)}</span></div>
 
+  <div class="thank-you">Thank you for your order!</div>
+  <div class="footer-brand">★ Si Lentera · Solusi Kasir Ringan ★</div>
   <div class="dash"></div>
   <div class="paid-box">
     <div class="paid-time">${now.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })} - ${now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })} WIB</div>
   </div>
-  <div class="dash"></div>
-  <div class="thank-you">Thank you for your order!</div>
-  <div class="footer-brand">★ Si Lentera · Solusi Kasir Ringan ★</div>
   <br/><br/>
 </body></html>`;
 
