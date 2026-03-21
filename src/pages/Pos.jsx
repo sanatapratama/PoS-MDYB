@@ -1284,7 +1284,7 @@ export default function Pos() {
                   <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>Ringkasan omset dan transaksi yang tercatat hari ini.</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
                     {[{ label: 'Total Transaksi', value: transactions.length + ' pesanan', icon: '🧾' },
-                      { label: 'Omset Hari Ini', value: formatIDR(transactions.filter(t => new Date(t.created_at).toDateString() === new Date().toDateString()).reduce((s, t) => s + (t.total_amount || 0), 0)), icon: '💰' },
+                      { label: 'Omset Hari Ini', value: formatIDR(transactions.filter(t => new Date(t.created_at).toDateString() === new Date().toDateString()).reduce((s, t) => s + (t.total || 0), 0)), icon: '💰' },
                       { label: 'Pelanggan Terdaftar', value: members.length + ' orang', icon: '👥' }].map((s, i) => (
                       <div key={i} className="glass" style={{ padding: '1.5rem', textAlign: 'center' }}>
                         <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>{s.icon}</div>
@@ -1295,12 +1295,44 @@ export default function Pos() {
                   </div>
                   <div className="glass" style={{ padding: '1.5rem' }}>
                     <h4 style={{ marginBottom: '1rem' }}>5 Transaksi Terakhir</h4>
-                    {transactions.slice(0, 5).map(t => (
-                      <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.7rem 0', borderBottom: '1px solid #f1f5f9' }}>
-                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{new Date(t.created_at).toLocaleString('id-ID')}</span>
-                        <span style={{ fontWeight: 700, color: 'var(--accent-blue)' }}>{formatIDR(t.total_amount)}</span>
-                      </div>
-                    ))}
+                    {transactions.slice(0, 5).map(t => {
+                      const cashierName = dbCashiers.find(u => u.id === t.cashier_id)?.name || 'Admin / Manual';
+                      return (
+                        <div key={t.id} style={{ display: 'flex', flexDirection: 'column', padding: '1rem 0', borderBottom: '1px solid #f1f5f9' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <div>
+                              <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Kasir: {cashierName}</div>
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>Diubah: {new Date(t.created_at).toLocaleString('id-ID')}</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 800, color: 'var(--accent-blue)', fontSize: '1.1rem' }}>{formatIDR(t.total)}</div>
+                              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.6rem' }}>
+                                <button
+                                  onClick={() => {
+                                    setEditTxId(t.id);
+                                    setTxForm({ total: t.total || '', payment_method: t.payment_method || 'cash' });
+                                    setActiveMenu('history');
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                  }}
+                                  style={{ background: '#e0f2fe', border: 'none', borderRadius: '6px', padding: '0.4rem 0.6rem', cursor: 'pointer', color: '#0284c7', fontSize: '0.8rem', fontWeight: 600 }}>
+                                  ✏️ Edit
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    if (!window.confirm('Hapus laporan ini secara permanen?')) return;
+                                    const { error } = await supabase.from('transactions').delete().eq('id', t.id);
+                                    if (error) alert('Gagal hapus: ' + error.message);
+                                    else setTransactions(prev => prev.filter(x => x.id !== t.id));
+                                  }}
+                                  style={{ background: '#fee2e2', border: 'none', borderRadius: '6px', padding: '0.4rem 0.6rem', cursor: 'pointer', color: '#dc2626', fontSize: '0.8rem', fontWeight: 600 }}>
+                                  🗑 Hapus
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -1320,9 +1352,9 @@ export default function Pos() {
                       onClick={() => alert(`✅ Shift dimulai dengan modal Rp ${Number(drawerAmount).toLocaleString('id-ID')}`)}>Mulai Shift →</button>
                     <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                       <h5 style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>Ringkasan Shift Hari Ini</h5>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Total Masuk (Tunai)</span><span style={{ fontWeight: 700 }}>{formatIDR(transactions.filter(t => t.payment_method === 'cash').reduce((s, t) => s + (t.total_amount || 0), 0))}</span></div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Total Masuk (QRIS)</span><span style={{ fontWeight: 700 }}>{formatIDR(transactions.filter(t => t.payment_method === 'qris').reduce((s, t) => s + (t.total_amount || 0), 0))}</span></div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}><span style={{ fontWeight: 700 }}>Grand Total</span><span style={{ fontWeight: 800, color: 'var(--accent-blue)' }}>{formatIDR(transactions.reduce((s, t) => s + (t.total_amount || 0), 0))}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Total Masuk (Tunai)</span><span style={{ fontWeight: 700 }}>{formatIDR(transactions.filter(t => t.payment_method === 'cash').reduce((s, t) => s + (t.total || 0), 0))}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}><span>Total Masuk (QRIS)</span><span style={{ fontWeight: 700 }}>{formatIDR(transactions.filter(t => t.payment_method === 'qris').reduce((s, t) => s + (t.total || 0), 0))}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.5rem', borderTop: '1px solid #e2e8f0' }}><span style={{ fontWeight: 700 }}>Grand Total</span><span style={{ fontWeight: 800, color: 'var(--accent-blue)' }}>{formatIDR(transactions.reduce((s, t) => s + (t.total || 0), 0))}</span></div>
                     </div>
                   </div>
                 </div>
