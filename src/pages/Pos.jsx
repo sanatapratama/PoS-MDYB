@@ -78,7 +78,7 @@ function formatIDR(num) {
 
 // ──────────────────────── MODALS ────────────────────────
 
-function QRISModal({ total, text, onClose }) {
+function QRISModal({ total, text, onClose, onConfirm }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
@@ -90,6 +90,9 @@ function QRISModal({ total, text, onClose }) {
         <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
           Arahkan kamera HP ke QR di atas. Pembayaran terdeteksi otomatis.
         </p>
+        <button className="checkout-btn qris" style={{ width: '100%', marginTop: '1rem', padding: '0.8rem' }} onClick={onConfirm}>
+          <CheckCircle size={20} /> Selesai Dibayar
+        </button>
         <button className="modal-close" onClick={onClose}>{text.closeBtn}</button>
       </div>
     </div>
@@ -156,7 +159,24 @@ function KasbonModal({ text, onClose, onConfirm }) {
   );
 }
 
-function SuccessModal({ text, total, cart, payMethod, customer, onClose }) {
+function SuccessModal({ text, total, onClose }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="success-icon"><CheckCircle size={40} /></div>
+        <h3>{text.successTitle}</h3>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+          Total dibayar: <strong>{formatIDR(total)}</strong>
+        </p>
+        <button className="checkout-btn" onClick={onClose} style={{ width: '100%', background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-cyan))' }}>
+          Tutup & Lanjut
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WAModal({ text, cart, total, payMethod, customer, onClose }) {
   const [waNum, setWaNum] = useState(customer?.phone || '');
 
   const buildWAMessage = () => {
@@ -180,7 +200,7 @@ ${itemLines}
 Subtotal: ${formatIDR(subtotalAmt)}
 Pajak (11%): ${formatIDR(taxAmt)}
 *TOTAL: ${formatIDR(total)}*
-Metode: ${(payMethod || '').toUpperCase()}
+Metode: ${(payMethod || 'Manual').toUpperCase()}
 ━━━━━━━━━━━━━━━━━━
 🙏 Terima kasih sudah berbelanja!
 _Si Lentera · Solusi Kasir Ringan_`);
@@ -190,22 +210,21 @@ _Si Lentera · Solusi Kasir Ringan_`);
     if (!waNum.trim()) return alert('Masukkan nomor WhatsApp pelanggan');
     const num = waNum.replace(/^0/, '62').replace(/\D/g, '');
     window.open(`https://wa.me/${num}?text=${buildWAMessage()}`, '_blank');
+    onClose();
   };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={e => e.stopPropagation()}>
-        <div className="success-icon"><CheckCircle size={40} /></div>
-        <h3>{text.successTitle}</h3>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-          Total dibayar: <strong>{formatIDR(total)}</strong>
-        </p>
+        <div style={{ color: '#25D366', marginBottom: '1rem' }}><MessageCircle size={40} /></div>
+        <h3>Kirim Tagihan WA</h3>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Kirimkan rincian pesanan ke pelanggan secara digital.</p>
         <div className="split-inputs" style={{ textAlign: 'left' }}>
           <label>Nomor WhatsApp Pelanggan</label>
           <input placeholder="0812xxxxxxxx" value={waNum} onChange={e => setWaNum(e.target.value)} />
         </div>
-        <button className="wa-btn" onClick={sendWA}>
-          <MessageCircle size={20} /> {text.sendWA}
+        <button className="wa-btn" onClick={sendWA} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: '#25D366', color: 'white', border: 'none', padding: '0.8rem', borderRadius: '12px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer' }}>
+          <MessageCircle size={20} />Kirim Pesan WA
         </button>
         <button className="modal-close" onClick={onClose}>{text.closeBtn}</button>
       </div>
@@ -590,8 +609,19 @@ export default function Pos() {
   <br/><br/>
 </body></html>`;
 
-    const w = window.open('', '_blank', 'width=450,height=750,left=100,top=60');
-    if (w) { w.document.write(printContent); w.document.close(); w.focus(); setTimeout(() => { w.print(); }, 400); }
+    // Modern hidden iframe approach blocks browsers from interpreting it as random popup blocking
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.top = '-9999px';
+    document.body.appendChild(iframe);
+    iframe.contentWindow.document.open();
+    iframe.contentWindow.document.write(printContent);
+    iframe.contentWindow.document.close();
+    iframe.contentWindow.focus();
+    setTimeout(() => { 
+      iframe.contentWindow.print(); 
+      setTimeout(() => document.body.removeChild(iframe), 1500);
+    }, 400);
   };
 
   if (!activeUser && location.pathname === '/admin') {
@@ -609,12 +639,13 @@ export default function Pos() {
       <div className="motion-lines" />
 
       {/* ── Modals ── */}
-      {modal === 'qris'   && <QRISModal   total={total}  text={text} onClose={() => setModal(null)} />}
+      {modal === 'qris'   && <QRISModal   total={total}  text={text} onClose={() => setModal(null)} onConfirm={() => { setModal(null); saveToSupabase('qris'); printReceipt('QRIS'); }} />}
       {modal === 'split'  && <SplitModal  total={total}  text={text} onClose={() => setModal(null)}
         onConfirm={(cash, rest) => { setModal(null); saveToSupabase('split', { cash, qris: rest }); }} />}
       {modal === 'kasbon' && <KasbonModal text={text} onClose={() => setModal(null)}
         onConfirm={(name, phone) => { setModal(null); saveToSupabase('kasbon', { name, phone }); }} />}
       {modal === 'success' && <SuccessModal text={text} total={lastTotal} cart={lastCart} payMethod={lastMethod} customer={selectedCustomer} onClose={() => setModal(null)} />}
+      {modal === 'wa'      && <WAModal text={text} total={Math.round(total)} cart={cart} payMethod="Manual" customer={selectedCustomer} onClose={() => setModal(null)} />}
 
       {/* ── Left Sidebar ── */}
       <aside className="pos-sidebar-left glass">
@@ -814,25 +845,22 @@ export default function Pos() {
                 <button className="checkout-btn" onClick={() => { saveToSupabase('cash'); printReceipt('Tunai'); }} disabled={cart.length === 0}>
                   <CreditCard size={18} /> {text.charge}
                 </button>
-                <button className="checkout-btn qris" onClick={() => { saveToSupabase('qris'); printReceipt('QRIS'); }} disabled={cart.length === 0}>
+                <button className="checkout-btn qris" onClick={() => setModal('qris')} disabled={cart.length === 0}>
                   <QrCode size={18} /> {text.qrisBtn}
                 </button>
-                <button className="checkout-btn split" onClick={() => setModal('split')} disabled={cart.length === 0}>
+                <button className="checkout-btn split" onClick={() => setModal('split')} disabled={cart.length === 0} style={{ gridColumn: 'span 1' }}>
                   <CreditCard size={18} /> {text.splitBtn}
                 </button>
-                <button className="checkout-btn kasbon" onClick={() => setModal('kasbon')} disabled={cart.length === 0}>
+                <button className="checkout-btn kasbon" onClick={() => setModal('kasbon')} disabled={cart.length === 0} style={{ gridColumn: 'span 1' }}>
                   <BookOpen size={18} /> {text.kasbonBtn}
                 </button>
+                <button className="checkout-btn" onClick={() => printReceipt('Manual')} disabled={cart.length === 0} style={{ background: '#f8fafc', color: cart.length === 0 ? '#94a3b8' : '#0f172a', border: '1px solid #e2e8f0', boxShadow: 'none' }}>
+                  <Printer size={18} /> Nota Thermal
+                </button>
+                <button className="checkout-btn" onClick={() => setModal('wa')} disabled={cart.length === 0} style={{ background: '#ecfdf5', color: cart.length === 0 ? '#94a3b8' : '#059669', border: '1px solid #a7f3d0', boxShadow: 'none' }}>
+                  <MessageCircle size={18} /> Kirim ke WA
+                </button>
               </div>
-              {/* Print Button */}
-              <button
-                onClick={() => printReceipt('Manual')}
-                disabled={cart.length === 0}
-                style={{ width: '100%', marginTop: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.7rem', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', color: cart.length === 0 ? '#94a3b8' : 'var(--text-primary)', fontWeight: 600, cursor: cart.length === 0 ? 'not-allowed' : 'pointer', fontSize: '0.9rem', transition: 'all 0.2s' }}
-                onMouseEnter={e => { if (cart.length > 0) e.currentTarget.style.background = '#eff6ff'; }}
-                onMouseLeave={e => e.currentTarget.style.background = '#f8fafc'}>
-                <Printer size={18} color={cart.length === 0 ? '#94a3b8' : 'var(--accent-blue)'} /> Cetak Nota Thermal
-              </button>
             </div>
           </aside>
             </>
