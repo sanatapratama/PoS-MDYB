@@ -527,10 +527,10 @@ export default function Pos() {
   const total = donation ? rounded : raw;
 
   // ── checkout flows ──
-  const finishUI = (amount, method) => {
+  const finishUI = (amount, method, cartSnapshot = []) => {
     setLastTotal(amount);
     setLastMethod(method || 'cash');
-    setLastCart([...cart]);
+    setLastCart([...(cartSnapshot.length > 0 ? cartSnapshot : cart)]);
     setCart([]);
     setDonation(0);
     setDiscountInput('');
@@ -538,37 +538,35 @@ export default function Pos() {
     setModal('success');
   };
 
-  const saveToSupabase = async (method, extra = {}) => {
+  const saveToSupabase = async (itemsToSave, totalToSave, method, extra = {}) => {
     const txData = {
-      items: cart,
-      subtotal,
+      items: itemsToSave,
+      subtotal: itemsToSave.reduce((s, i) => s + (i.price * i.qty), 0),
       tax: 0,
-      total: Math.round(total),
+      total: totalToSave,
       payment_method: method,
-      cash_amount: extra.cash || (method === 'cash' ? Math.round(total) : 0),
-      qris_amount: extra.qris || (method === 'qris' ? Math.round(total) : 0),
+      cash_amount: extra.cash || (method === 'cash' ? totalToSave : 0),
+      qris_amount: extra.qris || (method === 'qris' ? totalToSave : 0),
       donation_amount: donationAmt,
       cashier_id: activeUser ? activeUser.id : null
     };
 
-    // Optimistic: show success immediately, sync in background
-    finishUI(Math.round(total), method);
+    // Optimistic: show success immediately
+    finishUI(totalToSave, method, itemsToSave);
 
     try {
       const { data, error } = await supabase.from('transactions').insert([txData]).select();
-      if (error) { console.warn('Supabase sync failed (non-blocking):', error.message); return; }
+      if (error) { console.warn('Supabase sync failed:', error.message); return; }
 
       if (method === 'kasbon' && extra.name) {
-        const { error: kasbonErr } = await supabase.from('members')
-          .upsert([{ name: extra.name, phone: extra.phone || null, debt_balance: Math.round(total) }], { onConflict: 'phone' });
-        if (kasbonErr) console.warn('Kasbon upsert failed:', kasbonErr.message);
+        await supabase.from('members')
+          .upsert([{ name: extra.name, phone: extra.phone || null, debt_balance: totalToSave }], { onConflict: 'phone' });
       }
 
-      // Refresh transaction list
       const { data: txList } = await supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(50);
       if (txList) setTransactions(txList);
     } catch (err) {
-      console.warn('Unexpected error (non-blocking):', err.message);
+      console.warn('Unexpected error:', err.message);
     }
   };
 
@@ -818,24 +816,26 @@ export default function Pos() {
 
       {/* ── Modals ── */}
       {modal === 'payment' && <PaymentModal total={total} selectedCustomer={selectedCustomer} onClose={() => setModal(null)} onConfirm={({ method, cashGiven, splitQris, autoPrint }) => {
-        // Snapshot data before closing and resetting cart
-        const cartSnapshot = [...cart];
-        const totalToSave = Math.round(total);
+        // Capture everything before state reset
+        const itemsToSave = [...cart];
+        const grandTotal = Math.round(total);
         const customerSnapshot = selectedCustomer;
         const methodLabel = method === 'split' ? 'Campuran' : method === 'cash' ? 'Tunai' : method === 'kasbon' ? 'Kasbon' : 'QRIS';
 
-        // Save to Supabase (internally clears UI via finishUI)
-        saveToSupabase(method, { 
+        // 1. Process database & UI reset
+        saveToSupabase(itemsToSave, grandTotal, method, { 
           cash: cashGiven, 
           qris: splitQris, 
           name: customerSnapshot?.name, 
           phone: customerSnapshot?.phone 
         });
         
+        // 2. Clear modal
         setModal(null);
         
+        // 3. Print
         if (autoPrint) {
-          printBluetooth(cartSnapshot, methodLabel, totalToSave, customerSnapshot);
+          printBluetooth(itemsToSave, methodLabel, grandTotal, customerSnapshot);
         } else {
           printReceipt(methodLabel);
         }
