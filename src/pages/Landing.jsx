@@ -112,7 +112,7 @@ export default function Landing() {
           <img 
             src="https://res.cloudinary.com/dsichsufc/image/upload/v1774077572/Gemini_Generated_Image_8kdszf8kdszf8kds_n5l2gf.png" 
             alt="Si Lentera Logo" 
-            style={{ height: '40px', objectFit: 'contain' }} 
+            style={{ height: '40px', objectFit: 'contain', mixBlendMode: 'multiply' }} 
           />
         </div>
 
@@ -161,22 +161,13 @@ export default function Landing() {
         {/* Badge moved to H1 */}
 
         {/* Title */}
-        <h1 style={{ maxWidth: '750px', margin: '0 auto' }}>
+        <h1 style={{ maxWidth: '750px', margin: '0 auto', marginBottom: '1.5rem' }}>
           <img 
             src="https://res.cloudinary.com/dsichsufc/image/upload/v1774077572/Gemini_Generated_Image_8kdszf8kdszf8kds_n5l2gf.png" 
             alt="Si Lentera Logo" 
-            style={{ width: '100%', maxWidth: '350px', objectFit: 'contain' }} 
+            style={{ width: '100%', maxWidth: '500px', objectFit: 'contain', mixBlendMode: 'multiply' }} 
           />
         </h1>
-
-        {/* Subtitle */}
-        <p style={{
-          fontSize: '1.25rem',
-          color: 'var(--text-secondary)',
-          fontWeight: 400,
-          maxWidth: '520px',
-          lineHeight: 1.7,
-        }}>{text.subtitle}</p>
 
         {/* CTA Buttons */}
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
