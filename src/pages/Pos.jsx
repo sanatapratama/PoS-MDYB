@@ -526,10 +526,9 @@ export default function Pos() {
   body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10pt; color: #111; width: ${paperSize === '80mm' ? '80mm' : '58mm'}; background: #fff; padding: 10px 8px 20px; }
 
   /* Header */
-  .logo-wrap { text-align: center; margin-bottom: 5px; }
-  .logo-img { width: 120px; height: 120px; object-fit: contain; }
-  .store-name { display: none; }
-  .store-sub { display: none; }
+  .logo-wrap { text-align: center; margin-bottom: 0; }
+  .logo-img { width: 140px; height: auto; max-height: 100px; object-fit: contain; }
+  .store-name, .store-sub { display: none !important; }
   .order-type { text-align: center; font-size: 11pt; font-weight: 700; margin: 10px 0 8px; }
 
   /* Divider */
@@ -562,12 +561,9 @@ export default function Pos() {
   .footer-brand { text-align: center; font-size: 8pt; color: #9ca3af; margin-top: 4px; }
 </style>
 </head><body>
-
   <div class="logo-wrap">
-    <img src="https://res.cloudinary.com/dsichsufc/image/upload/e_make_transparent:20/v1774079104/logo_silentera_l5nepu.png" class="logo-img" alt="Logo" />
+    <img src="https://res.cloudinary.com/dsichsufc/image/upload/v1774079104/logo_silentera_l5nepu.png" class="logo-img" alt="Logo" />
   </div>
-  <div class="store-name">Si Lentera</div>
-  <div class="store-sub">by MDYB Store</div>
   <div class="order-type">Kasir / ${payMethod.toUpperCase()}</div>
 
   <div class="dash"></div>
@@ -608,7 +604,6 @@ export default function Pos() {
 
   <div class="dash"></div>
   <div class="paid-box">
-    <div class="paid-badge">PAID</div>
     <div class="paid-time">${now.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })} - ${now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })} WIB</div>
   </div>
   <div class="dash"></div>
