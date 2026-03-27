@@ -676,7 +676,7 @@ export default function Pos() {
     printReceiptBrowser(lastCart, lastMethod, lastTotal, selectedCustomer, cashierName, txId, now);
   };
 
-  // ── bluetooth print (Direct ESC/POS) ──
+  // ── bluetooth print (Direct ESC/POS - Optimized for Woya WP801 58mm) ──
   const printBluetooth = async (cartToPrint, method, totalToPrint, customer) => {
     if (!cartToPrint || cartToPrint.length === 0) {
       console.warn('No items to print');
@@ -686,87 +686,171 @@ export default function Pos() {
     try {
       const now = new Date();
       const txId = 'SL' + now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + String(now.getTime()).slice(-5);
+      const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+      const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB';
+      const cashierName = activeUser ? activeUser.name : 'Kasir';
+      const customerName = customer?.name || 'Anonim';
+      const subtotalAmt = cartToPrint.reduce((s, i) => s + (i.price * i.qty), 0);
+      const fmtRp = (n) => 'Rp ' + n.toLocaleString('id-ID');
       
       const encoder = new TextEncoder();
       
-      // ESC/POS Commands
-      const ESC_INIT = '\x1b\x40';
-      const ESC_ALIGN_CENTER = '\x1b\x61\x01';
-      const ESC_ALIGN_LEFT = '\x1b\x61\x00';
-      const ESC_ALIGN_RIGHT = '\x1b\x61\x02';
-      const ESC_BOLD_ON = '\x1b\x45\x01';
-      const ESC_BOLD_OFF = '\x1b\x45\x00';
+      // ─── ESC/POS Command Constants ───
+      const INIT          = '\x1b\x40';       // Reset printer
+      const CENTER        = '\x1b\x61\x01';   // Align center  
+      const LEFT          = '\x1b\x61\x00';   // Align left
+      const BOLD_ON       = '\x1b\x45\x01';   // Bold on
+      const BOLD_OFF      = '\x1b\x45\x00';   // Bold off
+      const DBL_H_ON      = '\x1b\x21\x10';   // Double height on
+      const DBL_H_OFF     = '\x1b\x21\x00';   // Double height off
+      const DBL_WH_ON     = '\x1b\x21\x30';   // Double width+height on
+      const UNDERLINE_ON  = '\x1b\x2d\x01';   // Underline on
+      const UNDERLINE_OFF = '\x1b\x2d\x00';   // Underline off
+      const FEED_CUT      = '\n\n\n\n\x1d\x56\x00'; // Feed + partial cut
       
-      // Helper for 32-char line (Standard 58mm)
-      const pad = (left, right) => {
-        const totalLen = 32;
-        const leftStr = String(left);
-        const rightStr = String(right);
-        const PadLen = totalLen - leftStr.length - rightStr.length;
-        if (PadLen > 0) return leftStr + ' '.repeat(PadLen) + rightStr;
-        return leftStr + '\n' + ' '.repeat(totalLen - rightStr.length) + rightStr;
+      // 32 chars per line for 58mm thermal
+      const W = 32;
+      const LINE_DASH  = '\u2500'.repeat(W) + '\n';       // ────────
+      const LINE_EQUAL = '='.repeat(W) + '\n';            // ========
+      const LINE_DOT   = '.'.repeat(W) + '\n';            // ........
+      
+      // Helper: pad left+right on same line
+      const lr = (l, r, width = W) => {
+        const ls = String(l), rs = String(r);
+        const gap = width - ls.length - rs.length;
+        return gap > 0 ? ls + ' '.repeat(gap) + rs : ls + ' ' + rs;
       };
-
-      // Receipt Text Construction
-      let teks = ESC_INIT + ESC_ALIGN_CENTER + ESC_BOLD_ON;
-      teks += "SI LENTERA\nBY MDYB STORE\n";
-      teks += ESC_BOLD_OFF;
-      teks += "Solusi Kasir Ringan\n";
-      teks += "================================\n";
-      teks += ESC_ALIGN_LEFT;
-      teks += pad("Tgl:", now.toLocaleDateString('id-ID')) + "\n";
-      teks += pad("Jam:", now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + " WIB") + "\n";
-      teks += `ID Trx: ${txId}\n`;
-      if (customer) teks += `Plg: ${customer.name}\n`;
-      teks += "--------------------------------\n";
       
+      // ─── Build Receipt ───
+      let r = INIT;
+      
+      // === HEADER ===
+      r += CENTER + DBL_H_ON + BOLD_ON;
+      r += 'SI LENTERA\n';
+      r += DBL_H_OFF + BOLD_OFF;
+      r += 'by MDYB Store\n';
+      r += '\n';
+      
+      // === TITLE (Kasir / METHOD) ===
+      r += BOLD_ON + DBL_H_ON;
+      r += `Kasir / ${method.toUpperCase()}\n`;
+      r += DBL_H_OFF + BOLD_OFF;
+      r += LINE_EQUAL;
+      
+      // === INFO SECTION (2 columns) ===
+      r += LEFT;
+      r += lr('Tanggal', 'Kasir') + '\n';
+      r += BOLD_ON;
+      r += lr(dateStr, cashierName) + '\n';
+      r += BOLD_OFF + '\n';
+      r += lr('Trx ID', 'Pelanggan') + '\n';
+      r += BOLD_ON;
+      // Truncate txId if too long
+      const txShort = txId.length > 16 ? txId.substring(0, 16) : txId;
+      const custShort = customerName.length > 14 ? customerName.substring(0, 14) : customerName;
+      r += lr(txShort, custShort) + '\n';
+      r += BOLD_OFF;
+      r += LINE_DASH;
+      
+      // === ITEMS ===
       cartToPrint.forEach(item => {
-        teks += `${item.name} x${item.qty}\n`;
-        const priceStr = formatIDR(item.price * item.qty).replace('Rp', 'Rp ').trim();
-        teks += ESC_ALIGN_RIGHT + priceStr + "\n" + ESC_ALIGN_LEFT;
+        const name = item.name.length > 22 ? item.name.substring(0, 22) : item.name;
+        const qty = `x${item.qty}`;
+        const lineTotal = fmtRp(item.price * item.qty);
+        // Row 1: Name + qty
+        r += `${name} ${qty}\n`;
+        // Row 2: price right-aligned
+        r += ' '.repeat(Math.max(0, W - lineTotal.length)) + lineTotal + '\n';
       });
       
-      teks += "--------------------------------\n";
-      const totalStr = formatIDR(totalToPrint).replace('Rp', 'Rp ').trim();
-      teks += ESC_BOLD_ON + pad("TOTAL:", totalStr) + "\n" + ESC_BOLD_OFF;
-      teks += `Metode: ${method}\n`;
-      teks += "================================\n";
-      teks += ESC_ALIGN_CENTER + "Terima Kasih Telah Belanja!\n\n\n\n\n";
+      r += LINE_DASH;
       
-      const data = encoder.encode(teks);
+      // === PAYMENT DETAILS ===
+      r += BOLD_ON + 'Payment Details\n' + BOLD_OFF;
+      r += lr('Subtotal', fmtRp(subtotalAmt)) + '\n';
+      r += LINE_EQUAL;
       
+      // === TOTAL (big & bold) ===
+      r += DBL_WH_ON + BOLD_ON;
+      r += CENTER;
+      r += `Total ${fmtRp(totalToPrint)}\n`;
+      r += DBL_H_OFF + BOLD_OFF + '\x1b\x21\x00';
+      r += LINE_DASH;
+      
+      // === PAYMENT METHOD ===
+      r += LEFT;
+      r += BOLD_ON + 'Payment Method\n' + BOLD_OFF;
+      r += lr(method, fmtRp(totalToPrint)) + '\n';
+      r += lr('Kembalian', 'Rp 0') + '\n';
+      r += LINE_DASH;
+      
+      // === PAID BADGE ===
+      r += CENTER + '\n';
+      r += BOLD_ON + DBL_WH_ON;
+      r += '- PAID -\n';
+      r += '\x1b\x21\x00' + BOLD_OFF;
+      r += '\n';
+      r += `${dateStr} - ${timeStr}\n`;
+      r += '\n';
+      r += 'Thank you for your order!\n';
+      r += '\n';
+      r += BOLD_ON;
+      r += '* Si Lentera *\n';
+      r += BOLD_OFF;
+      r += 'Solusi Kasir Ringan\n';
+      
+      // === FEED & CUT ===
+      r += FEED_CUT;
+      
+      const data = encoder.encode(r);
+      
+      // ─── Connect to Bluetooth Printer ───
       if (!navigator.bluetooth) {
-        alert("Browser tidak mendukung Web Bluetooth. Silakan gunakan Chrome/Edge.");
+        alert("Browser tidak mendukung Web Bluetooth.\nGunakan Chrome atau Edge.");
         return;
       }
       
       const device = await navigator.bluetooth.requestDevice({
-        filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
-        optionalServices: ['battery_service']
+        acceptAllDevices: true,
+        optionalServices: [
+          '000018f0-0000-1000-8000-00805f9b34fb',
+          '0000ff00-0000-1000-8000-00805f9b34fb'
+        ]
       });
       
       const server = await device.gatt.connect();
-      const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
-      const characteristic = await service.getCharacteristic('00002af0-0000-1000-8000-00805f9b34fb');
+      let service;
+      try { 
+        service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb'); 
+      } catch(e) { 
+        service = await server.getPrimaryService('0000ff00-0000-1000-8000-00805f9b34fb'); 
+      }
       
-      // Standard BLE characteristics often have a limited MTU. 
-      // 20 bytes is the safest chunk size for most thermal printers.
+      const characteristics = await service.getCharacteristics();
+      const characteristic = characteristics.find(c => 
+        c.properties.writeWithoutResponse || c.properties.write
+      );
+      if (!characteristic) throw new Error('Karakteristik Write tidak ditemukan pada printer.');
+      
+      // Send data in safe 20-byte chunks with 50ms delay
       const chunkSize = 20;
       for (let i = 0; i < data.length; i += chunkSize) {
         const chunk = data.slice(i, i + chunkSize);
         
-        // Priority to writeWithoutResponse to avoid "GATT operation not permitted"
         if (characteristic.properties.writeWithoutResponse) {
           await characteristic.writeValueWithoutResponse(chunk);
         } else {
           await characteristic.writeValueWithResponse(chunk);
         }
         
-        // Small delay to prevent printer buffer overflow
-        await new Promise(resolve => setTimeout(resolve, 30));
+        // Increased delay to 50ms for stable output (prevents garbled text)
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
       
-      console.log('Bluetooth printing success');
+      // Disconnect cleanly
+      if (device.gatt.connected) device.gatt.disconnect();
+      console.log('✅ Bluetooth print complete');
+      
     } catch (error) {
       console.error('Bluetooth Print Error:', error);
       if (error.name !== 'NotFoundError') {
