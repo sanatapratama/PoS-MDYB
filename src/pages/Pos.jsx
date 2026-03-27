@@ -13,12 +13,87 @@ import './Pos.css';
 // Wholesale Removed
 
 // ──────────────────────── UTILS BT PRINT ────────────────────────
-async function writeBTChunks(characteristic, data) {
-  const CHUNK_SIZE = 20; 
-  for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-    const chunk = data.slice(i, i + CHUNK_SIZE);
-    await characteristic.writeValue(chunk);
-    await new Promise(r => setTimeout(r, 10)); // Jeda 10ms antar chunk
+
+// Logo URL for receipt header
+const LOGO_URL = 'https://res.cloudinary.com/dvz0zvpwr/image/upload/v1774077332/mdyb_logo_dark_pos_txlz5.png';
+
+// Convert image URL to ESC/POS raster bitmap (GS v 0)
+async function imageToEscPosBitmap(imageUrl, maxWidth = 384) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        // Scale image to fit printer width (384 dots for 58mm)
+        const scale = Math.min(maxWidth / img.width, 1);
+        const w = Math.floor(img.width * scale);
+        const h = Math.floor(img.height * scale);
+        
+        // Width must be multiple of 8 (8 pixels per byte)
+        const byteWidth = Math.ceil(w / 8);
+        const pixelWidth = byteWidth * 8;
+        
+        // Draw to offscreen canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = pixelWidth;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, pixelWidth, h);
+        ctx.drawImage(img, (pixelWidth - w) / 2, 0, w, h); // Center image
+        
+        const imageData = ctx.getImageData(0, 0, pixelWidth, h);
+        const pixels = imageData.data;
+        
+        // Convert to 1-bit monochrome bitmap
+        const bitmapData = new Uint8Array(byteWidth * h);
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < pixelWidth; x++) {
+            const idx = (y * pixelWidth + x) * 4;
+            const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2], a = pixels[idx + 3];
+            // Grayscale with alpha consideration
+            const gray = a < 128 ? 255 : (0.299 * r + 0.587 * g + 0.114 * b);
+            // Threshold: dark pixels = black (bit=1)
+            if (gray < 128) {
+              const bytePos = y * byteWidth + Math.floor(x / 8);
+              const bitPos = 7 - (x % 8);
+              bitmapData[bytePos] |= (1 << bitPos);
+            }
+          }
+        }
+        
+        // Build GS v 0 command: \x1d\x76\x30 m xL xH yL yH d1...dk
+        const cmd = new Uint8Array(8 + bitmapData.length);
+        cmd[0] = 0x1d; // GS
+        cmd[1] = 0x76; // v
+        cmd[2] = 0x30; // 0
+        cmd[3] = 0x00; // m = normal mode
+        cmd[4] = byteWidth & 0xFF;        // xL
+        cmd[5] = (byteWidth >> 8) & 0xFF;  // xH
+        cmd[6] = h & 0xFF;                 // yL
+        cmd[7] = (h >> 8) & 0xFF;          // yH
+        cmd.set(bitmapData, 8);
+        
+        resolve(cmd);
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = () => reject(new Error('Gagal memuat logo'));
+    img.src = imageUrl;
+  });
+}
+
+// Write data to BLE characteristic in safe chunks
+async function writeBTChunks(characteristic, data, chunkSize = 20, delayMs = 50) {
+  for (let i = 0; i < data.length; i += chunkSize) {
+    const chunk = data.slice(i, i + chunkSize);
+    if (characteristic.properties.writeWithoutResponse) {
+      await characteristic.writeValueWithoutResponse(chunk);
+    } else {
+      await characteristic.writeValueWithResponse(chunk);
+    }
+    await new Promise(r => setTimeout(r, delayMs));
   }
 }
 
@@ -724,8 +799,10 @@ export default function Pos() {
       // ─── Build Receipt ───
       let r = INIT;
       
-      // === HEADER ===
-      r += CENTER + DBL_H_ON + BOLD_ON;
+      // === HEADER (text fallback - logo printed separately as bitmap) ===
+      r += CENTER;
+      r += '\n'; // spacing after logo
+      r += BOLD_ON + DBL_H_ON;
       r += 'SI LENTERA\n';
       r += DBL_H_OFF + BOLD_OFF;
       r += 'by MDYB Store\n';
@@ -802,7 +879,16 @@ export default function Pos() {
       // === FEED & CUT ===
       r += FEED_CUT;
       
-      const data = encoder.encode(r);
+      const textData = encoder.encode(r);
+      
+      // ─── Load Logo Bitmap ───
+      let logoBitmap = null;
+      try {
+        logoBitmap = await imageToEscPosBitmap(LOGO_URL, 300); // 300 dots wide for nice size
+      } catch(logoErr) {
+        console.warn('Logo tidak bisa dimuat untuk cetak:', logoErr.message);
+        // Will print without logo
+      }
       
       // ─── Connect to Bluetooth Printer ───
       if (!navigator.bluetooth) {
@@ -832,24 +918,24 @@ export default function Pos() {
       );
       if (!characteristic) throw new Error('Karakteristik Write tidak ditemukan pada printer.');
       
-      // Send data in safe 20-byte chunks with 50ms delay
-      const chunkSize = 20;
-      for (let i = 0; i < data.length; i += chunkSize) {
-        const chunk = data.slice(i, i + chunkSize);
-        
-        if (characteristic.properties.writeWithoutResponse) {
-          await characteristic.writeValueWithoutResponse(chunk);
-        } else {
-          await characteristic.writeValueWithResponse(chunk);
-        }
-        
-        // Increased delay to 50ms for stable output (prevents garbled text)
-        await new Promise(resolve => setTimeout(resolve, 50));
+      // ─── Send to Printer ───
+      // 1. Send INIT + CENTER alignment for logo
+      const initCenter = encoder.encode(INIT + CENTER);
+      await writeBTChunks(characteristic, initCenter);
+      
+      // 2. Send Logo bitmap (if loaded)
+      if (logoBitmap) {
+        await writeBTChunks(characteristic, logoBitmap, 20, 80); // Slower for image data
+        // Small feed after logo
+        await writeBTChunks(characteristic, encoder.encode('\n'));
       }
+      
+      // 3. Send text receipt
+      await writeBTChunks(characteristic, textData);
       
       // Disconnect cleanly
       if (device.gatt.connected) device.gatt.disconnect();
-      console.log('✅ Bluetooth print complete');
+      console.log('✅ Bluetooth print with logo complete');
       
     } catch (error) {
       console.error('Bluetooth Print Error:', error);
