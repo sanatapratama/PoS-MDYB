@@ -804,7 +804,13 @@ export default function Pos() {
       r += BOLD_ON + DBL_H_ON;
       r += 'SI LENTERA\n';
       r += DBL_H_OFF + BOLD_OFF;
-      r += 'by MDYB Store\n';
+      r += BOLD_ON + 'by MDYB Store\n' + BOLD_OFF;
+      r += '\x1b\x4d\x01'; // Select Font B (smaller/condensed)
+      r += 'Jl. Imogiri Timur Km 14\n';
+      r += 'Singosaren 002 Wukirsari\n';
+      r += 'Imogiri Bantul Yk 55782\n';
+      r += '(087838398740)\n';
+      r += '\x1b\x4d\x00'; // Back to Font A (normal)
       r += '\n';
       
       // === TITLE (Kasir / METHOD) ===
@@ -829,8 +835,9 @@ export default function Pos() {
       
       // === ITEMS ===
       cartToPrint.forEach(item => {
-        const name = item.name.length > 34 ? item.name.substring(0, 34) : item.name;
-        const qty = `x${item.qty}`;
+        const name = item.name.length > 28 ? item.name.substring(0, 28) : item.name;
+        const unit = item.unit || 'pcs';
+        const qty = `${item.qty} ${unit}`;
         const lineTotal = fmtRp(item.price * item.qty);
         r += lr(`${name} ${qty}`, lineTotal) + '\n';
       });
@@ -863,6 +870,9 @@ export default function Pos() {
       r += BOLD_ON;
       r += '*silentera by mdybstore*\n';
       r += BOLD_OFF;
+      r += '\x1b\x4d\x01'; // Font B (smaller)
+      r += 'kunjungi laman kami di: mdyb.store\n';
+      r += '\x1b\x4d\x00'; // Back to Font A
       
       // === FEED & CUT ===
       r += FEED_CUT;
