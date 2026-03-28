@@ -783,11 +783,10 @@ export default function Pos() {
       const UNDERLINE_OFF = '\x1b\x2d\x00';   // Underline off
       const FEED_CUT      = '\n\n\n\n\x1d\x56\x00'; // Feed + partial cut
       
-      // 32 chars per line for 58mm thermal
-      const W = 32;
-      const LINE_DASH  = '-'.repeat(W) + '\n';              // --------
-      const LINE_EQUAL = '='.repeat(W) + '\n';              // ========
-      const LINE_DOT   = '.'.repeat(W) + '\n';              // ........
+      // 48 chars per line for 80mm thermal
+      const W = 48;
+      const LINE_DASH  = '-'.repeat(W) + '\n';
+      const LINE_EQUAL = '='.repeat(W) + '\n';
       
       // Helper: pad left+right on same line
       const lr = (l, r, width = W) => {
@@ -799,9 +798,9 @@ export default function Pos() {
       // ─── Build Receipt ───
       let r = INIT;
       
-      // === HEADER (text fallback - logo printed separately as bitmap) ===
+      // === HEADER ===
       r += CENTER;
-      r += '\n'; // spacing after logo
+      r += '\n';
       r += BOLD_ON + DBL_H_ON;
       r += 'SI LENTERA\n';
       r += DBL_H_OFF + BOLD_OFF;
@@ -822,22 +821,18 @@ export default function Pos() {
       r += BOLD_OFF + '\n';
       r += lr('Trx ID', 'Pelanggan') + '\n';
       r += BOLD_ON;
-      // Truncate txId if too long
-      const txShort = txId.length > 16 ? txId.substring(0, 16) : txId;
-      const custShort = customerName.length > 14 ? customerName.substring(0, 14) : customerName;
+      const txShort = txId.length > 24 ? txId.substring(0, 24) : txId;
+      const custShort = customerName.length > 20 ? customerName.substring(0, 20) : customerName;
       r += lr(txShort, custShort) + '\n';
       r += BOLD_OFF;
       r += LINE_DASH;
       
       // === ITEMS ===
       cartToPrint.forEach(item => {
-        const name = item.name.length > 22 ? item.name.substring(0, 22) : item.name;
+        const name = item.name.length > 34 ? item.name.substring(0, 34) : item.name;
         const qty = `x${item.qty}`;
         const lineTotal = fmtRp(item.price * item.qty);
-        // Row 1: Name + qty
-        r += `${name} ${qty}\n`;
-        // Row 2: price right-aligned
-        r += ' '.repeat(Math.max(0, W - lineTotal.length)) + lineTotal + '\n';
+        r += lr(`${name} ${qty}`, lineTotal) + '\n';
       });
       
       r += LINE_DASH;
@@ -847,34 +842,27 @@ export default function Pos() {
       r += lr('Subtotal', fmtRp(subtotalAmt)) + '\n';
       r += LINE_EQUAL;
       
-      // === TOTAL (big & bold) ===
-      r += DBL_WH_ON + BOLD_ON;
-      r += CENTER;
-      r += `Total ${fmtRp(totalToPrint)}\n`;
-      r += DBL_H_OFF + BOLD_OFF + '\x1b\x21\x00';
+      // === TOTAL (bold, normal size) ===
+      r += BOLD_ON;
+      r += lr('Total', fmtRp(totalToPrint)) + '\n';
+      r += BOLD_OFF;
       r += LINE_DASH;
       
       // === PAYMENT METHOD ===
-      r += LEFT;
       r += BOLD_ON + 'Payment Method\n' + BOLD_OFF;
       r += lr(method, fmtRp(totalToPrint)) + '\n';
       r += lr('Kembalian', 'Rp 0') + '\n';
       r += LINE_DASH;
       
-      // === PAID BADGE ===
-      r += CENTER + '\n';
-      r += BOLD_ON + DBL_WH_ON;
-      r += '- PAID -\n';
-      r += '\x1b\x21\x00' + BOLD_OFF;
-      r += '\n';
+      // === FOOTER ===
+      r += CENTER;
       r += `${dateStr} - ${timeStr}\n`;
       r += '\n';
-      r += 'Thank you for your order!\n';
+      r += 'Terima kasih atas pesanan Anda!\n';
       r += '\n';
       r += BOLD_ON;
-      r += '* Si Lentera *\n';
+      r += '*silentera by mdybstore*\n';
       r += BOLD_OFF;
-      r += 'Solusi Kasir Ringan\n';
       
       // === FEED & CUT ===
       r += FEED_CUT;
