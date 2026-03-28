@@ -432,19 +432,22 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
                 )}
               </div>
             </div>
-            <label style={{ fontSize: '0.8rem', color: '#92400e', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Pilih Durasi Tempo:</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+            <label style={{ fontSize: '0.8rem', color: '#92400e', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Durasi Tempo:</label>
+            <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', marginBottom: '0.5rem' }}>
               {[7, 14, 30, 60].map(d => (
                 <button key={d} onClick={() => setTempoDays(d)}
                   style={{
-                    padding: '0.6rem', borderRadius: '10px', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
+                    padding: '0.5rem 0.7rem', borderRadius: '10px', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer',
                     border: tempoDays === d ? '2px solid #b45309' : '1px solid #fcd34d',
                     background: tempoDays === d ? '#fbbf24' : '#fffbeb',
                     color: tempoDays === d ? '#78350f' : '#92400e'
                   }}>
-                  {d} Hari
+                  {d}h
                 </button>
               ))}
+              <input type="number" min="1" value={tempoDays} onChange={e => setTempoDays(Math.max(1, parseInt(e.target.value) || 1))}
+                style={{ width: '70px', padding: '0.5rem', borderRadius: '10px', border: '2px solid #b45309', fontWeight: 800, fontSize: '0.85rem', textAlign: 'center', color: '#78350f', background: '#fef3c7' }} />
+              <span style={{ fontSize: '0.8rem', color: '#92400e', fontWeight: 600 }}>Hari</span>
             </div>
             <p style={{ fontSize: '0.75rem', color: '#92400e', marginTop: '0.6rem' }}>
               Jatuh tempo: <strong>{new Date(Date.now() + tempoDays * 86400000).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
@@ -612,6 +615,7 @@ export default function Pos() {
   const [cart, setCart] = useState([]);
   const [cameraActive, setCameraActive] = useState(false);
   const [donation, setDonation] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Modals
   const [modal, setModal] = useState(null);
@@ -703,10 +707,12 @@ export default function Pos() {
     ['Drinks', 'Food', 'Snacks'].forEach(c => categories.push({ key: c, label: c }));
   }
 
-  // Derived products
-  const filteredProducts = activeTab === 'all'
-    ? dbProducts
-    : dbProducts.filter(p => p.category === activeTab);
+  // Derived products (filter by category + search)
+  const filteredProducts = dbProducts.filter(p => {
+    const matchCategory = activeTab === 'all' || p.category === activeTab;
+    const matchSearch = !searchQuery.trim() || p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchCategory && matchSearch;
+  });
 
   // ── cart helpers ──
   const addToCart = (product) => {
@@ -1220,7 +1226,7 @@ Terima kasih! 🙏`);
         <header className="pos-header">
           <div className="header-search">
             <Search size={20} color="var(--text-secondary)" />
-            <input type="text" placeholder={text.searchPlaceholder} />
+            <input type="text" placeholder={text.searchPlaceholder} value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             <div className="scan-toggle" onClick={() => setCameraActive(!cameraActive)}
               style={cameraActive ? { background: 'var(--accent-blue)', color: 'white' } : {}}>
               {cameraActive ? <Camera size={20} /> : <ScanLine size={20} />}
