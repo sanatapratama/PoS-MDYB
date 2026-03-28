@@ -785,9 +785,9 @@ export default function Pos() {
       
       // 32 chars per line for 58mm thermal
       const W = 32;
-      const LINE_DASH  = '\u2500'.repeat(W) + '\n';       // ────────
-      const LINE_EQUAL = '='.repeat(W) + '\n';            // ========
-      const LINE_DOT   = '.'.repeat(W) + '\n';            // ........
+      const LINE_DASH  = '-'.repeat(W) + '\n';              // --------
+      const LINE_EQUAL = '='.repeat(W) + '\n';              // ========
+      const LINE_DOT   = '.'.repeat(W) + '\n';              // ........
       
       // Helper: pad left+right on same line
       const lr = (l, r, width = W) => {
