@@ -313,6 +313,7 @@ function formatIDR(num) {
 function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
   const [method, setMethod] = useState('cash');
   const [cashGiven, setCashGiven] = useState('');
+  const [tempoDays, setTempoDays] = useState(7);
 
   const cashNum = parseFloat(cashGiven.replace(/\D/g, '')) || 0;
   const denominations = [10000, 20000, 50000, 100000, 'Pas'];
@@ -333,10 +334,10 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
     if (method === 'split' && cashNum >= total) {
       return alert('Bayar tunai melebihi/sama dengan tagihan. Gunakan metode Tunai.');
     }
-    if (method === 'kasbon' && !selectedCustomer) {
-      if (!window.confirm('Belum ada pelanggan dipilih. Yakin catat kasbon ke pelanggan anonim?')) return;
+    if ((method === 'kasbon' || method === 'tempo') && !selectedCustomer) {
+      if (!window.confirm('Belum ada pelanggan dipilih. Yakin lanjut ke pelanggan anonim?')) return;
     }
-    onConfirm({ method, cashGiven: cashNum, splitQris: remaining });
+    onConfirm({ method, cashGiven: cashNum, splitQris: remaining, tempoDays: method === 'tempo' ? tempoDays : null });
   };
 
   return (
@@ -347,19 +348,20 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
           <span style={{ background: 'var(--accent-blue)', color: 'white', padding: '0.3rem 0.8rem', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 800 }}>Total: {formatIDR(total)}</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem', marginBottom: '1.2rem' }}>
-          {['cash', 'qris', 'split', 'kasbon'].map(m => (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.4rem', marginBottom: '1.2rem' }}>
+          {['cash', 'qris', 'split', 'kasbon', 'tempo'].map(m => (
             <button key={m} onClick={() => setMethod(m)}
               style={{
                 padding: '0.8rem 0.4rem', borderRadius: '12px', border: method === m ? '2px solid var(--accent-blue)' : '1px solid #e2e8f0',
                 background: method === m ? '#eff6ff' : 'white', color: method === m ? 'var(--accent-blue)' : 'var(--text-secondary)',
-                fontWeight: 700, cursor: 'pointer', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px'
+                fontWeight: 700, cursor: 'pointer', fontSize: '0.7rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px'
               }}>
               {m === 'cash' && <CreditCard size={18} />}
               {m === 'qris' && <QrCode size={18} />}
               {m === 'split' && <LayoutGrid size={18} />}
               {m === 'kasbon' && <BookOpen size={18} />}
-              {m === 'split' ? 'Mix' : m === 'cash' ? 'Tunai' : m === 'qris' ? 'QRIS' : 'Hutang'}
+              {m === 'tempo' && <Clock size={18} />}
+              {m === 'cash' ? 'Tunai' : m === 'qris' ? 'QRIS' : m === 'split' ? 'Mix' : m === 'kasbon' ? 'Hutang' : 'Tempo'}
             </button>
           ))}
         </div>
@@ -417,10 +419,43 @@ function PaymentModal({ total, selectedCustomer, onClose, onConfirm }) {
           </div>
         )}
 
+        {method === 'tempo' && (
+          <div style={{ background: '#fef3c7', padding: '1.2rem', borderRadius: '16px', marginBottom: '1.2rem', border: '1px solid #fcd34d', textAlign: 'left' }}>
+            <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', marginBottom: '0.8rem' }}>
+              <Clock size={24} color="#b45309" />
+              <div>
+                <h4 style={{ color: '#b45309', margin: 0, fontSize: '0.9rem' }}>Tempo Kredit</h4>
+                {selectedCustomer ? (
+                  <p style={{ fontSize: '0.8rem', margin: '2px 0 0' }}>Pelanggan: <strong>{selectedCustomer.name}</strong></p>
+                ) : (
+                  <p style={{ fontSize: '0.8rem', margin: '2px 0 0', color: '#dc2626' }}>⚠ Pilih pelanggan dulu!</p>
+                )}
+              </div>
+            </div>
+            <label style={{ fontSize: '0.8rem', color: '#92400e', fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>Pilih Durasi Tempo:</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.4rem' }}>
+              {[7, 14, 30, 60].map(d => (
+                <button key={d} onClick={() => setTempoDays(d)}
+                  style={{
+                    padding: '0.6rem', borderRadius: '10px', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer',
+                    border: tempoDays === d ? '2px solid #b45309' : '1px solid #fcd34d',
+                    background: tempoDays === d ? '#fbbf24' : '#fffbeb',
+                    color: tempoDays === d ? '#78350f' : '#92400e'
+                  }}>
+                  {d} Hari
+                </button>
+              ))}
+            </div>
+            <p style={{ fontSize: '0.75rem', color: '#92400e', marginTop: '0.6rem' }}>
+              Jatuh tempo: <strong>{new Date(Date.now() + tempoDays * 86400000).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</strong>
+            </p>
+          </div>
+        )}
+
         <button onClick={handlePay}
-          disabled={method === 'kasbon' && !selectedCustomer}
-          style={{ width: '100%', padding: '1.2rem', borderRadius: '14px', background: (method === 'kasbon' && !selectedCustomer) ? '#cbd5e1' : 'linear-gradient(135deg, #10b981, #059669)', color: 'white', fontWeight: 800, fontSize: '1rem', border: 'none', cursor: (method === 'kasbon' && !selectedCustomer) ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(16,185,129,0.3)', marginBottom: '0.6rem' }}>
-          💳 {method === 'qris' ? 'KONFIRMASI BAYAR QRIS' : method === 'kasbon' ? 'CATAT SEBAGAI HUTANG' : 'SELESAIKAN TRANSAKSI'}
+          disabled={(method === 'kasbon' || method === 'tempo') && !selectedCustomer}
+          style={{ width: '100%', padding: '1.2rem', borderRadius: '14px', background: ((method === 'kasbon' || method === 'tempo') && !selectedCustomer) ? '#cbd5e1' : 'linear-gradient(135deg, #10b981, #059669)', color: 'white', fontWeight: 800, fontSize: '1rem', border: 'none', cursor: ((method === 'kasbon' || method === 'tempo') && !selectedCustomer) ? 'not-allowed' : 'pointer', boxShadow: '0 4px 12px rgba(16,185,129,0.3)', marginBottom: '0.6rem' }}>
+          💳 {method === 'qris' ? 'KONFIRMASI BAYAR QRIS' : method === 'kasbon' ? 'CATAT SEBAGAI HUTANG' : method === 'tempo' ? `CATAT TEMPO ${tempoDays} HARI` : 'SELESAIKAN TRANSAKSI'}
         </button>
         <button onClick={onClose} style={{ width: '100%', padding: '0.8rem', borderRadius: '12px', background: 'transparent', border: '1px solid #e2e8f0', color: 'var(--text-secondary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}>Batal &amp; Kembali</button>
       </div>
@@ -583,6 +618,8 @@ export default function Pos() {
   const [lastTotal, setLastTotal] = useState(0);
   const [lastMethod, setLastMethod] = useState('cash');
   const [lastCart, setLastCart] = useState([]);
+  const [lastNote, setLastNote] = useState('');
+  const [lastTempo, setLastTempo] = useState(null);
 
   // Settings
   const [viewMode, setViewMode] = useState(localStorage.getItem('viewMode') || 'website');
@@ -699,10 +736,12 @@ export default function Pos() {
   const total = donation ? rounded : raw;
 
   // ── checkout flows ──
-  const finishUI = (amount, method, cartSnapshot = []) => {
+  const finishUI = (amount, method, cartSnapshot = [], noteSnapshot = '', tempoInfo = null) => {
     setLastTotal(amount);
     setLastMethod(method || 'cash');
     setLastCart([...(cartSnapshot.length > 0 ? cartSnapshot : cart)]);
+    setLastNote(noteSnapshot);
+    setLastTempo(tempoInfo);
     setCart([]);
     setDonation(0);
     setDiscountInput('');
@@ -724,7 +763,7 @@ export default function Pos() {
     };
 
     // Optimistic: show success immediately
-    finishUI(totalToSave, method, itemsToSave);
+    finishUI(totalToSave, method, itemsToSave, extra.note || '', extra.tempo || null);
 
     try {
       const { data, error } = await supabase.from('transactions').insert([txData]).select();
@@ -751,8 +790,8 @@ export default function Pos() {
     printReceiptBrowser(lastCart, lastMethod, lastTotal, selectedCustomer, cashierName, txId, now);
   };
 
-  // ── bluetooth print (Direct ESC/POS - Optimized for Woya WP801 58mm) ──
-  const printBluetooth = async (cartToPrint, method, totalToPrint, customer) => {
+  // ── bluetooth print (Direct ESC/POS - Optimized for Woya WP801 80mm) ──
+  const printBluetooth = async (cartToPrint, method, totalToPrint, customer, noteText = '', tempoInfo = null) => {
     if (!cartToPrint || cartToPrint.length === 0) {
       console.warn('No items to print');
       return;
@@ -857,12 +896,23 @@ export default function Pos() {
       r += BOLD_ON + 'Payment Method\n' + BOLD_OFF;
       r += lr(method, fmtRp(totalToPrint)) + '\n';
       r += lr('Kembalian', 'Rp 0') + '\n';
+      
+      // === TEMPO INFO ===
+      if (tempoInfo) {
+        const dueDate = new Date(Date.now() + tempoInfo * 86400000).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        r += BOLD_ON + `Tempo: ${tempoInfo} Hari\n` + BOLD_OFF;
+        r += `Jatuh Tempo: ${dueDate}\n`;
+      }
       r += LINE_DASH;
       
       // === CATATAN ===
       r += BOLD_ON + 'Catatan :\n' + BOLD_OFF;
-      r += '\n';
-      r += '\n';
+      if (noteText && noteText.trim()) {
+        r += noteText.trim() + '\n';
+      } else {
+        r += '\n';
+        r += '\n';
+      }
       r += '\n';
       r += LINE_DASH;
       
@@ -1092,26 +1142,28 @@ export default function Pos() {
       <div className="motion-lines" />
 
       {/* ── Modals ── */}
-      {modal === 'payment' && <PaymentModal total={total} selectedCustomer={selectedCustomer} onClose={() => setModal(null)} onConfirm={({ method, cashGiven, splitQris }) => {
+      {modal === 'payment' && <PaymentModal total={total} selectedCustomer={selectedCustomer} onClose={() => setModal(null)} onConfirm={({ method, cashGiven, splitQris, tempoDays: td }) => {
         // Capture snapshot BEFORE state reset
         const itemsToSave = [...cart];
         const grandTotal = Math.round(total);
         const customerSnapshot = selectedCustomer;
+        const noteSnapshot = noteInput;
 
         // saveToSupabase calls finishUI() which sets modal='success' automatically
-        // DO NOT call setModal(null) here - it would overwrite 'success'!
         saveToSupabase(itemsToSave, grandTotal, method, {
           cash: cashGiven,
           qris: splitQris,
           name: customerSnapshot?.name,
-          phone: customerSnapshot?.phone
+          phone: customerSnapshot?.phone,
+          note: noteSnapshot,
+          tempo: td
         });
       }} />}
       {modal === 'success' && <SuccessModal
         total={lastTotal}
         onClose={() => setModal(null)}
         onWebPrint={handleWebPrint}
-        onBluetoothPrint={() => printBluetooth(lastCart, lastMethod, lastTotal, selectedCustomer)}
+        onBluetoothPrint={() => printBluetooth(lastCart, lastMethod, lastTotal, selectedCustomer, lastNote, lastTempo)}
         onSendWA={() => {
           if (!selectedCustomer?.phone) {
             alert('Pilih pelanggan dengan nomor WA terlebih dahulu.');
