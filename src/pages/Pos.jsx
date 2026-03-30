@@ -499,6 +499,101 @@ function SuccessModal({ total, onClose, onBluetoothPrint, onSendWA, onWebPrint }
 }
 
 
+function NotaModal({ tx, onClose, dbCashiers, onWebPrint, onBluetoothPrint }) {
+  if (!tx) return null;
+  const items = tx.items || [];
+  const date = new Date(tx.created_at || Date.now());
+  const dateStr = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+  const timeStr = date.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }) + ' WIB';
+  const subtotalAmt = items.reduce((s, i) => s + ((i.price||0) * (i.qty||0)), 0);
+  const cashierName = dbCashiers?.find(c => c.id === tx.cashier_id)?.name || 'Admin / Manual';
+  const txId = (tx.id || '').toString().slice(0,8).toUpperCase();
+
+  return (
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 9999 }}>
+      <div className="modal-content" style={{ width: '380px', padding: '1.5rem', background: '#f8fafc', borderRadius: '20px' }} onClick={e => e.stopPropagation()}>
+        <div style={{ background: '#fff', padding: '1.5rem', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.05)', color: '#111', fontFamily: "'Inter', sans-serif" }}>
+          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+            <img src="https://res.cloudinary.com/dvz0zvpwr/image/upload/v1774077332/mdyb_logo_dark_pos_txlz5.png" alt="Logo" style={{ maxWidth: '140px', marginBottom: '0.5rem' }} />
+            <div style={{ fontSize: '1.1rem', fontWeight: 800 }}>Nota / {tx.payment_method?.toUpperCase()}</div>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#475569', marginBottom: '0.5rem' }}>
+            <div><div>Tanggal</div><div style={{ fontWeight: 700, color: '#111' }}>{dateStr}</div></div>
+            <div style={{ textAlign: 'right' }}><div>Kasir</div><div style={{ fontWeight: 700, color: '#111' }}>{cashierName}</div></div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#475569', marginBottom: '1rem' }}>
+            <div><div>Trx ID</div><div style={{ fontWeight: 700, color: '#111' }}>{txId || 'MANUAL'}</div></div>
+            <div style={{ textAlign: 'right' }}><div>Pelanggan</div><div style={{ fontWeight: 700, color: '#111' }}>Anonim</div></div>
+          </div>
+
+          <div style={{ borderTop: '1.5px dashed #cbd5e1', margin: '0.8rem 0' }}></div>
+
+          <div style={{ fontSize: '0.9rem' }}>
+            {items.map((item, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <div style={{ flex: 1, paddingRight: '10px' }}>{item.name} x{item.qty}</div>
+                <div style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{formatIDR((item.price||0) * (item.qty||0))}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ borderTop: '1.5px dashed #cbd5e1', margin: '0.8rem 0' }}></div>
+          
+          <div style={{ fontSize: '0.9rem', marginBottom: '0.8rem' }}>
+            <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Payment Details</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div>Subtotal</div>
+              <div>{formatIDR(subtotalAmt)}</div>
+            </div>
+            {(tx.discount_amount != null || tx.donation_amount != null) && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                <div>Penyesuaian</div>
+                <div>{formatIDR((tx.donation_amount||0) - (tx.discount_amount||0))}</div>
+              </div>
+            )}
+          </div>
+
+          <div style={{ borderTop: '1.5px solid #111', margin: '0.8rem 0' }}></div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 900, marginBottom: '0.8rem' }}>
+            <div>Total</div>
+            <div style={{ color: 'var(--accent-blue)' }}>{formatIDR(tx.total)}</div>
+          </div>
+
+          <div style={{ borderTop: '1.5px dashed #cbd5e1', margin: '0.8rem 0' }}></div>
+
+          <div style={{ fontSize: '0.9rem' }}>
+            <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Payment Method</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+              <div style={{ textTransform: 'uppercase' }}>{tx.payment_method}</div>
+              <div style={{ fontWeight: 600 }}>{formatIDR(tx.total)}</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 'bold' }}>
+              <div>Status</div>
+              <div>LUNAS</div>
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1.5px dashed #cbd5e1', margin: '0.8rem 0' }}></div>
+
+          <div style={{ textAlign: 'center', color: '#475569', fontSize: '0.75rem', marginTop: '1rem', lineHeight: 1.5 }}>
+            <div>{dateStr} - {timeStr}</div>
+            <div>Terima kasih atas kunjungannya!</div>
+            <div style={{ marginTop: '0.5rem', fontWeight: 600 }}>★ Si Lentera · Admin POS ★</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '0.6rem', marginTop: '1.2rem' }}>
+          <button onClick={() => onWebPrint(tx)} style={{ flex: 1, padding: '0.85rem', background: '#0ea5e9', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', boxShadow: '0 4px 10px rgba(14,165,233,0.3)' }}><Printer size={18}/> Web</button>
+          <button onClick={() => onBluetoothPrint(tx)} style={{ flex: 1, padding: '0.85rem', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', boxShadow: '0 4px 10px rgba(37,99,235,0.3)' }}><Bluetooth size={18}/> Thermal</button>
+        </div>
+        <button onClick={onClose} style={{ width: '100%', padding: '0.85rem', background: 'transparent', color: '#64748b', border: '1.5px solid #cbd5e1', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', marginTop: '0.6rem' }}>Tutup Nota</button>
+      </div>
+    </div>
+  );
+}
+
 function WAQuickSend({ total, cart, payMethod, customer, waNum, onClose }) {
   const buildWAMessage = () => {
     const now = new Date();
@@ -619,6 +714,7 @@ export default function Pos() {
 
   // Modals
   const [modal, setModal] = useState(null);
+  const [viewReceiptTx, setViewReceiptTx] = useState(null);
   const [lastTotal, setLastTotal] = useState(0);
   const [lastMethod, setLastMethod] = useState('cash');
   const [lastCart, setLastCart] = useState([]);
@@ -1193,6 +1289,24 @@ Terima kasih! 🙏`);
           window.open(`https://wa.me/${num}?text=${msg}`, '_blank');
         }}
       />}
+      {viewReceiptTx && <NotaModal 
+        tx={viewReceiptTx} 
+        onClose={() => setViewReceiptTx(null)} 
+        dbCashiers={dbCashiers}
+        onWebPrint={(t) => {
+          const cashierName = dbCashiers.find(c => c.id === t.cashier_id)?.name || 'Admin / Manual';
+          printReceiptBrowser(
+            t.items || [{name: 'Transaksi Manual', qty:1, price: t.total}],
+            t.payment_method || 'cash',
+            t.total,
+            null,
+            cashierName,
+            t.id?.toString()?.split('-')?.[0]?.toUpperCase() || 'TXN',
+            new Date(t.created_at)
+          );
+        }}
+        onBluetoothPrint={(t) => printBluetooth(t.items || [{name: 'Transaksi Manual', qty:1, price: t.total}], t.payment_method || 'cash', t.total, null, '', null)}
+      />}
 
       {/* ── Left Sidebar ── */}
       <aside className="pos-sidebar-left glass">
@@ -1726,13 +1840,8 @@ Terima kasih! 🙏`);
                   <div className="glass" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                       <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>
-                        {editTxId ? '✏️ Edit Riwayat Transaksi' : '➕ Tambah Riwayat Manual'} 
+                        ➕ Tambah Riwayat Manual
                       </h4>
-                      {editTxId && (
-                        <button onClick={() => { setEditTxId(null); setTxForm({ total: '', payment_method: 'cash' }); }} style={{ background: '#f1f5f9', color: 'var(--text-secondary)', border: 'none', padding: '0.4rem 1rem', borderRadius: '99px', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>
-                          Batal Edit
-                        </button>
-                      )}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
                       <div>
@@ -1765,29 +1874,21 @@ Terima kasih! 🙏`);
                           total: Number(txForm.total), 
                           subtotal: Number(txForm.total), 
                           tax: 0, 
-                          items: editTxId ? (transactions.find(t=>t.id===editTxId)?.items || []) : [{ name: 'Transaksi Manual', qty: 1, price: Number(txForm.total) }],
+                          items: [{ name: 'Transaksi Manual', qty: 1, price: Number(txForm.total) }],
                           payment_method: txForm.payment_method,
                           created_at: new Date().toISOString()
                         };
-                        let reqErr = null;
-                        if (editTxId) {
-                          const { error } = await supabase.from('transactions').update(dataPayload).eq('id', editTxId);
-                          reqErr = error;
-                        } else {
-                          const { error } = await supabase.from('transactions').insert([dataPayload]);
-                          reqErr = error;
-                        }
-                        if (reqErr) alert('Gagal: ' + reqErr.message);
+                        const { error } = await supabase.from('transactions').insert([dataPayload]);
+                        if (error) alert('Gagal: ' + error.message);
                         else {
                           setTxForm({ total: '', payment_method: 'cash' });
-                          setEditTxId(null);
                           const { data } = await supabase.from('transactions').select('*').order('created_at', { ascending: false }).limit(50);
                           if (data) setTransactions(data);
-                          alert(editTxId ? '✅ Transaksi berhasil diupdate!' : '✅ Transaksi manual berhasil ditambahkan!');
+                          alert('✅ Transaksi manual berhasil ditambahkan!');
                         }
                         setTxSaving(false);
                       }}>
-                      {txSaving ? 'Menyimpan...' : (editTxId ? '🔄 Update Transaksi' : '💾 Simpan Transaksi')}
+                      {txSaving ? 'Menyimpan...' : '💾 Simpan Transaksi'}
                     </button>
                   </div>
 
@@ -1808,14 +1909,10 @@ Terima kasih! 🙏`);
                             <td style={{ padding: '0.7rem 0.6rem', textAlign: 'right', fontWeight: 700 }}>{formatIDR(t.total)}</td>
                             <td style={{ textAlign: 'center', padding: '0.4rem', display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
                               <button
-                                onClick={() => {
-                                  setEditTxId(t.id);
-                                  setTxForm({ total: t.total || '', payment_method: t.payment_method || 'cash' });
-                                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                                }}
+                                onClick={() => setViewReceiptTx(t)}
                                 style={{ background: '#e0f2fe', border: 'none', borderRadius: '8px', padding: '0.4rem 0.65rem', cursor: 'pointer', color: '#0284c7', fontWeight: 700, fontSize: '0.85rem' }}
-                                title="Edit Laporan">
-                                ✏️
+                                title="Lihat Nota">
+                                🧾
                               </button>
                               <button
                                 onClick={async () => {
@@ -1868,14 +1965,9 @@ Terima kasih! 🙏`);
                               <div style={{ fontWeight: 800, color: 'var(--accent-blue)', fontSize: '1.1rem' }}>{formatIDR(t.total)}</div>
                               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.6rem' }}>
                                 <button
-                                  onClick={() => {
-                                    setEditTxId(t.id);
-                                    setTxForm({ total: t.total || '', payment_method: t.payment_method || 'cash' });
-                                    setActiveMenu('history');
-                                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                                  }}
+                                  onClick={() => setViewReceiptTx(t)}
                                   style={{ background: '#e0f2fe', border: 'none', borderRadius: '6px', padding: '0.4rem 0.6rem', cursor: 'pointer', color: '#0284c7', fontSize: '0.8rem', fontWeight: 600 }}>
-                                  ✏️ Edit
+                                  🧾 Nota
                                 </button>
                                 <button
                                   onClick={async () => {
