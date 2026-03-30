@@ -821,8 +821,9 @@ export default function Pos() {
   const categories = [{ key: 'all', label: text.all }];
   if (dbCategories.length > 0) {
     dbCategories.forEach(c => categories.push({ key: c.name, label: c.name }));
-  } else {
-    ['Drinks', 'Food', 'Snacks'].forEach(c => categories.push({ key: c, label: c }));
+  } else if (dbProducts.length > 0) {
+    const uniqueCats = Array.from(new Set(dbProducts.map(p => p.category).filter(Boolean)));
+    uniqueCats.forEach(c => categories.push({ key: c, label: c }));
   }
 
   // Derived products (filter by category + search)
