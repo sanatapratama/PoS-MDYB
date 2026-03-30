@@ -148,7 +148,7 @@ async function printViaBluetooth(cartData, totalAmount, payMethod, txId, now, ac
 }
 
 // ──────────────────────── UTILS WEB PRINT (NOTA) ────────────────────────
-function printReceiptBrowser(items, methodLabel, grandTotal, customer, cashierName, txId, now) {
+function printReceiptBrowser(items, methodLabel, grandTotal, customer, cashierName, txId, now, noteText = '') {
   const subtotalAmt = items.reduce((s, i) => s + (i.price * i.qty), 0);
   const dateStr = now.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
   const timeStr = now.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' }) + ' WIB';
@@ -240,6 +240,15 @@ function printReceiptBrowser(items, methodLabel, grandTotal, customer, cashierNa
         </div>
       </div>
       
+      <div class="line-dash"></div>
+      
+      <div class="items" style="width: 100%;">
+        <div class="bold" style="margin-bottom: 6px; font-size:10pt;">Catatan :</div>
+        <div style="font-size:9pt; min-height: 30px; border-bottom: 1.5px dotted #cbd5e1; padding-bottom: 4px;">
+          ${noteText || ''}
+        </div>
+      </div>
+
       <div class="line-dash"></div>
       
       <div class="paid-badge">
@@ -572,6 +581,15 @@ function NotaModal({ tx, onClose, dbCashiers, onWebPrint, onBluetoothPrint }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#16a34a', fontWeight: 'bold' }}>
               <div>Status</div>
               <div>LUNAS</div>
+            </div>
+          </div>
+
+          <div style={{ borderTop: '1.5px dashed #cbd5e1', margin: '0.8rem 0' }}></div>
+
+          <div style={{ fontSize: '0.9rem', marginBottom: '0.8rem' }}>
+            <div style={{ fontWeight: 700, marginBottom: '0.4rem' }}>Catatan :</div>
+            <div style={{ minHeight: '30px', borderBottom: '1.5px dotted #cbd5e1', fontSize: '0.85rem', color: '#475569', paddingBottom: '4px' }}>
+              {tx.note || ''}
             </div>
           </div>
 
@@ -1302,10 +1320,11 @@ Terima kasih! 🙏`);
             null,
             cashierName,
             t.id?.toString()?.split('-')?.[0]?.toUpperCase() || 'TXN',
-            new Date(t.created_at)
+            new Date(t.created_at),
+            t.note || ''
           );
         }}
-        onBluetoothPrint={(t) => printBluetooth(t.items || [{name: 'Transaksi Manual', qty:1, price: t.total}], t.payment_method || 'cash', t.total, null, '', null)}
+        onBluetoothPrint={(t) => printBluetooth(t.items || [{name: 'Transaksi Manual', qty:1, price: t.total}], t.payment_method || 'cash', t.total, null, t.note || '', null)}
       />}
 
       {/* ── Left Sidebar ── */}
