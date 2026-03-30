@@ -6,7 +6,7 @@ import {
   ShoppingCart, Plus, Minus, CreditCard, ChevronRight, 
   Home, Trash2, Percent, FileText, Camera, PauseCircle,
   FileBarChart, Fingerprint, Globe, Unlock, QrCode,
-  CheckCircle, MessageCircle, BookOpen, Package, Printer, Tag, StickyNote, Bluetooth
+  CheckCircle, MessageCircle, BookOpen, Package, Printer, Tag, StickyNote, Bluetooth, Moon, Sun
 } from 'lucide-react';
 import './Pos.css';
 
@@ -295,6 +295,8 @@ const DICT = {
     splitTitle: "Bayar Campuran",  kasbonTitle: "Catat Hutang",
     cashInput: "Bayar Tunai (Rp)", remaining: "Sisa via QRIS",
     wholesale: "Grosir",
+    sbHome: "HOME", sbPos: "KASIR", sbHist: "RIWAYAT", sbMem: "PELANGGAN", sbRep: "LAPORAN", sbStock: "STOK", sbDraw: "BRANKAS", sbOpt: "PENGATURAN",
+    logoutWarn: "Apakah Anda yakin ingin logout dan kembali ke menu utama (Home)? \n⚠ Perhatian: Data pesanan kasir yang belum disimpan ke database mungkin akan dikosongkan.",
   },
   EN: {
     searchPlaceholder: "Search by name, SKU or scan barcode...",
@@ -312,6 +314,8 @@ const DICT = {
     splitTitle: "Split Payment", kasbonTitle: "Record Debt",
     cashInput: "Cash Tendered (Rp)", remaining: "Rest via QRIS",
     wholesale: "Wholesale",
+    sbHome: "HOME", sbPos: "POS", sbHist: "HISTORY", sbMem: "MEMBERS", sbRep: "REPORT", sbStock: "STOCK", sbDraw: "DRAWER", sbOpt: "OPTIONS",
+    logoutWarn: "Are you sure you want to logout? \n⚠ Warning: Unsaved cashier data may be lost.",
   }
 };
 
@@ -1332,7 +1336,7 @@ Terima kasih! 🙏`);
         <div 
           className="nav-icon" 
           onClick={() => {
-            if (window.confirm('Apakah Anda yakin ingin logout dan kembali ke menu utama (Home)? \n⚠ Perhatian: Data pesanan kasir yang belum disimpan ke database mungkin akan dikosongkan.')) {
+            if (window.confirm(text.logoutWarn)) {
               localStorage.removeItem('activeUser');
               setActiveUser(null);
               navigate('/');
@@ -1341,16 +1345,16 @@ Terima kasih! 🙏`);
           title="Home"
         >
           <Home size={26}/>
-          <span className="nav-label">HOME</span>
+          <span className="nav-label">{text.sbHome}</span>
         </div>
         <div style={{ marginTop: '1rem' }}/>
-        <div className={`nav-icon ${activeMenu === 'pos' ? 'active' : ''}`} onClick={() => setActiveMenu('pos')}><LayoutGrid size={26}/><span className="nav-label">POS</span></div>
-        <div className={`nav-icon ${activeMenu === 'history' ? 'active' : ''}`} onClick={() => setActiveMenu('history')}><Clock size={26}/><span className="nav-label">HISTORY</span></div>
-        <div className={`nav-icon ${activeMenu === 'members' ? 'active' : ''}`} onClick={() => setActiveMenu('members')}><User size={26}/><span className="nav-label">MEMBERS</span></div>
-        <div className={`nav-icon ${activeMenu === 'report' ? 'active' : ''}`} onClick={() => setActiveMenu('report')}><FileBarChart size={26}/><span className="nav-label">REPORT</span></div>
-        <div className={`nav-icon ${activeMenu === 'stock' ? 'active' : ''}`} onClick={() => setActiveMenu('stock')}><Package size={26}/><span className="nav-label">STOCK</span></div>
-        <div className={`nav-icon ${activeMenu === 'drawer' ? 'active' : ''}`} onClick={() => setActiveMenu('drawer')}><Unlock size={26}/><span className="nav-label">DRAWER</span></div>
-        <div className={`nav-icon ${activeMenu === 'options' ? 'active' : ''}`} style={{ marginTop: 'auto' }} onClick={() => setActiveMenu('options')}><Settings size={26}/><span className="nav-label">OPTIONS</span></div>
+        <div className={`nav-icon ${activeMenu === 'pos' ? 'active' : ''}`} onClick={() => setActiveMenu('pos')}><LayoutGrid size={26}/><span className="nav-label">{text.sbPos}</span></div>
+        <div className={`nav-icon ${activeMenu === 'history' ? 'active' : ''}`} onClick={() => setActiveMenu('history')}><Clock size={26}/><span className="nav-label">{text.sbHist}</span></div>
+        <div className={`nav-icon ${activeMenu === 'members' ? 'active' : ''}`} onClick={() => setActiveMenu('members')}><User size={26}/><span className="nav-label">{text.sbMem}</span></div>
+        <div className={`nav-icon ${activeMenu === 'report' ? 'active' : ''}`} onClick={() => setActiveMenu('report')}><FileBarChart size={26}/><span className="nav-label">{text.sbRep}</span></div>
+        <div className={`nav-icon ${activeMenu === 'stock' ? 'active' : ''}`} onClick={() => setActiveMenu('stock')}><Package size={26}/><span className="nav-label">{text.sbStock}</span></div>
+        <div className={`nav-icon ${activeMenu === 'drawer' ? 'active' : ''}`} onClick={() => setActiveMenu('drawer')}><Unlock size={26}/><span className="nav-label">{text.sbDraw}</span></div>
+        <div className={`nav-icon ${activeMenu === 'options' ? 'active' : ''}`} style={{ marginTop: 'auto' }} onClick={() => setActiveMenu('options')}><Settings size={26}/><span className="nav-label">{text.sbOpt}</span></div>
       </aside>
 
       {/* ── Main ── */}
@@ -1366,6 +1370,9 @@ Terima kasih! 🙏`);
             </div>
           </div>
           <div className="header-tools">
+            <button className="lang-toggle" onClick={() => setIsDarkMode(d => !d)}>
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             <button className="lang-toggle" onClick={() => setLang(l => l === 'ID' ? 'EN' : 'ID')}>
               <Globe size={16} style={{ marginRight: 4, verticalAlign: 'middle' }} />{lang}
             </button>
@@ -1859,12 +1866,12 @@ Terima kasih! 🙏`);
                   <div className="glass" style={{ padding: '1.5rem', marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                       <h4 style={{ color: 'var(--text-primary)', margin: 0 }}>
-                        ➕ Tambah Riwayat Manual
+                        {text.histAdd}
                       </h4>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '0.8rem', marginBottom: '1rem' }}>
                       <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Total Transaksi (Rp) *</label>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>{text.txTotal}</label>
                         <input
                           type="number"
                           style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a' }}
@@ -1872,7 +1879,7 @@ Terima kasih! 🙏`);
                           onChange={e => setTxForm(f => ({ ...f, total: e.target.value }))} />
                       </div>
                       <div>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>Metode Pembayaran *</label>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '0.3rem' }}>{text.method} *</label>
                         <select
                           style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '10px', border: '1.5px solid #bfdbfe', fontSize: '0.95rem', outline: 'none', background: '#fff', color: '#0f172a' }}
                           value={txForm.payment_method}
@@ -1907,19 +1914,19 @@ Terima kasih! 🙏`);
                         }
                         setTxSaving(false);
                       }}>
-                      {txSaving ? 'Menyimpan...' : '💾 Simpan Transaksi'}
+                      {txSaving ? text.saving : text.saveTx}
                     </button>
                   </div>
 
                   <div className="glass" style={{ padding: '1.5rem' }}>
-                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>📋 Daftar Riwayat</h4>
-                    {transactions.length === 0 ? <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>Belum ada transaksi tercatat.</p> :
+                    <h4 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>{text.histList}</h4>
+                    {transactions.length === 0 ? <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '2rem' }}>{text.tableEmpty}</p> :
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                         <thead><tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                          <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Waktu</th>
-                          <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>Metode</th>
-                          <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>Total</th>
-                          <th style={{ textAlign: 'center', padding: '0.6rem', color: 'var(--text-secondary)' }}>Aksi</th>
+                          <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>{text.time}</th>
+                          <th style={{ textAlign: 'left', padding: '0.6rem', color: 'var(--text-secondary)' }}>{text.method}</th>
+                          <th style={{ textAlign: 'right', padding: '0.6rem', color: 'var(--text-secondary)' }}>{text.total}</th>
+                          <th style={{ textAlign: 'center', padding: '0.6rem', color: 'var(--text-secondary)' }}>{text.action}</th>
                         </tr></thead>
                         <tbody>{transactions.map(t => (
                           <tr key={t.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
